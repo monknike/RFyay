@@ -44,7 +44,7 @@ namespace RDVFSharp.Entities
         {
             get
             {
-                var total = BaseFighter.Endurance;
+                var total = BaseFighter.Spellpower;
                 return total;
             }
         }
@@ -52,7 +52,7 @@ namespace RDVFSharp.Entities
         {
             get
             {
-                var total = BaseFighter.Special;
+                var total = BaseFighter.Willpower;
                 return total;
             }
         }
@@ -99,10 +99,7 @@ namespace RDVFSharp.Entities
             KoValue = Constants.DefaultUnconsciousAt;
             DeathValue = Constants.DefaultDeadAt;
 
-            if (!BaseFighter.AreStatsValid)
-            {
-                throw new Exception($"{Name} was not created due to invalid settings: {string.Join(", ", BaseFighter.GetStatsErrors())}");
-            }
+            
 
             MaxHP = BaseFighter.BaseMaxHP;
             MaxMana = BaseFighter.BaseMaxMana;
@@ -1254,7 +1251,7 @@ namespace RDVFSharp.Entities
             var damage = 11 + attacker.Spellpower - attacker.Strength;
             damage *= 2;
             var requiredMana = 20;
-            var difficulty = 8; //Base difficulty, rolls greater than this amount will hit.
+            var difficulty = 10; //Base difficulty, rolls greater than this amount will hit.
 
             //If opponent fumbled on their previous action they should become stunned.
             if (target.Fumbled)
