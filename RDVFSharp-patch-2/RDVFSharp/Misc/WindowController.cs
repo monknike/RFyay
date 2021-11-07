@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 
 namespace RDVFSharp
 {
@@ -88,6 +89,11 @@ namespace RDVFSharp
             Hint.Clear();
             Info.Clear();
             Error.Clear();
+        }
+
+        internal void UpdateOutput(TeamBattlefield teamBattlefield)
+        {
+            throw new NotImplementedException();
         }
     }
 }

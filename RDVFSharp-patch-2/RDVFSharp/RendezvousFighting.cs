@@ -13,6 +13,7 @@ namespace RDVFSharp
     {
 
         public Battlefield CurrentBattlefield { get; set; }
+        public TeamBattlefield CurrentTeamBattlefield { get; set; }
         public Fighter FirstFighter { get; set; }
         public Fighter SecondFighter { get; set; }
         public Fighter ThirdFighter { get; set; }
