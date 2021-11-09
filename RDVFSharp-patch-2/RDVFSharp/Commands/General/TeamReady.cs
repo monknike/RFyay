@@ -38,6 +38,18 @@ namespace RDVFSharp.Commands
 
             var actualTeamFighter = new TeamFighter(fighter, Plugin.CurrentTeamBattlefield);
 
+            if (Plugin.FourthTeamFighter == null && Plugin.FirstTeamFighter != null && Plugin.SecondTeamFighter != null && Plugin.ThirdTeamFighter != null)
+            {
+                Plugin.FourthTeamFighter = actualTeamFighter;
+
+                if (!Plugin.CurrentTeamBattlefield.IsActive && (Plugin.FirstTeamFighter != null && Plugin.SecondTeamFighter != null && Plugin.ThirdTeamFighter != null && Plugin.FourthTeamFighter != null))
+                {
+                    Plugin.FChatClient.SendMessageInChannel($"{actualTeamFighter.Name} accepted the challenge! Let's get it on!", channel);
+                    Plugin.FChatClient.SendMessageInChannel(Constants.VCAdvertisement, channel);
+                    Plugin.CurrentTeamBattlefield.InitialSetup(Plugin.FirstTeamFighter, Plugin.SecondTeamFighter, Plugin.ThirdTeamFighter, Plugin.FourthTeamFighter);
+                }
+            }
+
             if (Plugin.ThirdTeamFighter == null && Plugin.FirstTeamFighter != null && Plugin.SecondTeamFighter != null)
             {
                 Plugin.ThirdTeamFighter = actualTeamFighter;
@@ -56,17 +68,7 @@ namespace RDVFSharp.Commands
                 Plugin.FChatClient.SendMessageInChannel($"{actualTeamFighter.Name} joined the fight!", channel);
             }
 
-            else
-            {
-                Plugin.FourthTeamFighter = actualTeamFighter;
-
-                if (!Plugin.CurrentTeamBattlefield.IsActive && (Plugin.FirstTeamFighter != null && Plugin.SecondTeamFighter != null && Plugin.ThirdTeamFighter != null && Plugin.FourthTeamFighter != null))
-                {
-                    Plugin.FChatClient.SendMessageInChannel($"{actualTeamFighter.Name} accepted the challenge! Let's get it on!", channel);
-                    Plugin.FChatClient.SendMessageInChannel(Constants.VCAdvertisement, channel);
-                    Plugin.CurrentTeamBattlefield.InitialSetup(Plugin.FirstTeamFighter, Plugin.SecondTeamFighter, Plugin.ThirdTeamFighter, Plugin.FourthTeamFighter);
-                }
-            }
+            
 
         }
     }
