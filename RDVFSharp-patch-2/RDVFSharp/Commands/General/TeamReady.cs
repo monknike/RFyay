@@ -38,15 +38,6 @@ namespace RDVFSharp.Commands
 
             var actualTeamFighter = new TeamFighter(fighter, Plugin.CurrentTeamBattlefield);
 
-            if(Plugin.FirstTeamFighter == null && Plugin.SecondTeamFighter != null && Plugin.ThirdTeamFighter != null && Plugin.FourthTeamFighter != null)
-            {
-                Plugin.FirstTeamFighter = Plugin.SecondTeamFighter;
-                Plugin.SecondTeamFighter = null;
-                Plugin.ThirdTeamFighter = null;
-                Plugin.FourthTeamFighter = null;
-
-            }
-
             if (Plugin.ThirdTeamFighter == null && Plugin.FirstTeamFighter != null && Plugin.SecondTeamFighter != null)
             {
                 Plugin.ThirdTeamFighter = actualTeamFighter;

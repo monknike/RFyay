@@ -35,6 +35,7 @@ namespace RDVFSharp
         {
             ServiceProvider = serviceProvider;
             ResetFight(currentBattlefield);
+            CurrentTeamBattlefield = new TeamBattlefield(this);
         }
 
         public void ResetFight(Battlefield currentBattlefield = null)
