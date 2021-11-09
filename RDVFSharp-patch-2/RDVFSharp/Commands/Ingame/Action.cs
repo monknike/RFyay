@@ -14,6 +14,12 @@ namespace RDVFSharp.Commands
             {
                 Plugin.CurrentBattlefield.TakeAction(GetType().Name);
             }
+
+            else if (Plugin.CurrentTeamBattlefield.IsAbleToAttack(character))
+            {
+                Plugin.CurrentTeamBattlefield.TakeAction(GetType().Name);
+            }
+
             else
             {
                 Plugin.FChatClient.SendMessageInChannel("This is not your turn.", Plugin.Channel);

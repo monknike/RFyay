@@ -164,7 +164,7 @@ namespace RDVFSharp
 
         public TeamFighter GetTarget()
         {
-            return TeamFighters[1 - currentTeamFighter];
+            return TeamFighters[3 - currentTeamFighter];
         }
 
         public void OutputTeamFighterstatus()
