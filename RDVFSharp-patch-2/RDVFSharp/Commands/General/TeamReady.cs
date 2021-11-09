@@ -56,7 +56,7 @@ namespace RDVFSharp.Commands
                 Plugin.FChatClient.SendMessageInChannel($"{actualTeamFighter.Name} joined the fight!", channel);
             }
 
-            if (Plugin.SecondTeamFighter == null && Plugin.FirstFighter != null)
+            if (Plugin.SecondTeamFighter == null && Plugin.FirstTeamFighter != null)
             {
                 Plugin.SecondTeamFighter = actualTeamFighter;
                 Plugin.FChatClient.SendMessageInChannel($"{actualTeamFighter.Name} joined the fight!", channel);
