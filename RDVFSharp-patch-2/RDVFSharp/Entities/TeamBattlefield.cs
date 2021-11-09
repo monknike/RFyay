@@ -196,7 +196,7 @@ namespace RDVFSharp
 
         public void PickInitialActor()
         {
-            currentTeamFighter = Utils.GetRandomNumber(0, TeamFighters.Count - 1);
+            currentTeamFighter = Utils.GetRandomNumber(0, TeamFighters.Count);
         }
 
         public string PickStage()

@@ -11,6 +11,7 @@ namespace RDVFSharp.Entities
         [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
         [Key]
         public long TeamFightId { get; set; }
+
         [Required]
         public string Room { get; set; }
         [Required]
