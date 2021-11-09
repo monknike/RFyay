@@ -6,7 +6,7 @@ namespace RDVFSharp.Entities
 {
     public class TeamFighter
     {
-        public TeamBattlefield Battlefield { get; set; }
+        public TeamBattlefield TeamBattlefield { get; set; }
         public BaseFighter BaseFighter { get; set; }
         public string Name
         {
@@ -95,7 +95,7 @@ namespace RDVFSharp.Entities
         public TeamFighter(BaseFighter baseFighter, TeamBattlefield Teambattlefield)
         {
             BaseFighter = baseFighter;
-            Battlefield = Teambattlefield;
+            TeamBattlefield = Teambattlefield;
             KoValue = Constants.DefaultUnconsciousAt;
             DeathValue = Constants.DefaultDeadAt;
 
@@ -174,7 +174,7 @@ namespace RDVFSharp.Entities
             x *= DamageEffectMult;
             HP -= x;
             HP = Utils.Clamp(HP, 0, MaxHP);
-            Battlefield.WindowController.Damage = x;
+            TeamBattlefield.WindowController.Damage = x;
 
             if (IsFocused > 0)
             {
@@ -182,7 +182,7 @@ namespace RDVFSharp.Entities
                 if (IsRestrained) doubleX *= 1.5;
                 if (IsDisoriented > 0) doubleX += IsDisoriented;
                 IsFocused = (int)Math.Max(IsFocused - doubleX, 0);
-                if (IsFocused == 0) Battlefield.WindowController.Hint.Add(Name + " has lost their focus!");
+                if (IsFocused == 0) TeamBattlefield.WindowController.Hint.Add(Name + " has lost their focus!");
             }
         }
 
@@ -310,14 +310,14 @@ namespace RDVFSharp.Entities
             LastKnownMana = Mana;
             LastKnownStamina = Stamina;
 
-            if (IsRestrained) Battlefield.WindowController.Hint.Add(Name + " is Grappled.");
-            if (IsFocused > 0) Battlefield.WindowController.Hint.Add(Name + " is Focused (" + IsFocused + " points). Focus is reduced by taking damage.");
-            if (IsFocused > 0) Battlefield.WindowController.Hint.Add(Name + "'s Ranged and Spell attacks have a +" + Math.Ceiling((double)IsFocused / 10) + " bonus to attack and damage because of the Focus.");
-            if (Battlefield.InGrabRange && Battlefield.DisplayGrabbed)
+            if (IsRestrained) TeamBattlefield.WindowController.Hint.Add(Name + " is Grappled.");
+            if (IsFocused > 0) TeamBattlefield.WindowController.Hint.Add(Name + " is Focused (" + IsFocused + " points). Focus is reduced by taking damage.");
+            if (IsFocused > 0) TeamBattlefield.WindowController.Hint.Add(Name + "'s Ranged and Spell attacks have a +" + Math.Ceiling((double)IsFocused / 10) + " bonus to attack and damage because of the Focus.");
+            if (TeamBattlefield.InGrabRange && TeamBattlefield.DisplayGrabbed)
             {
-                Battlefield.WindowController.Hint.Add("The fighters are in grappling range."); //Added notification about fighters being in grappling range.
+                TeamBattlefield.WindowController.Hint.Add("The fighters are in grappling range."); //Added notification about fighters being in grappling range.
             }
-            Battlefield.DisplayGrabbed = !Battlefield.DisplayGrabbed; //only output it on every two turns
+            TeamBattlefield.DisplayGrabbed = !TeamBattlefield.DisplayGrabbed; //only output it on every two turns
             return message;
         }
 
@@ -330,43 +330,43 @@ namespace RDVFSharp.Entities
 
             if (IsEscaping > 0)
             {
-                Battlefield.WindowController.Hint.Add(Name + " has a +" + IsEscaping + " escape bonus.");
+                TeamBattlefield.WindowController.Hint.Add(Name + " has a +" + IsEscaping + " escape bonus.");
             }
 
             //if (Stamina < rollDice([20]) && IsFocused > 0) {
-            //    Battlefield.WindowController.Hint.Add(Name + " lost their focus/aim because of fatigue!");
+            //    TeamBattlefield.WindowController.Hint.Add(Name + " lost their focus/aim because of fatigue!");
             //    IsFocused = 0;
             //}
 
             if (IsEvading > 0)
             {
-                Battlefield.WindowController.Hint.Add(Name + " has a temporary +" + IsEvading + " bonus to evasion and damage reduction.");
+                TeamBattlefield.WindowController.Hint.Add(Name + " has a temporary +" + IsEvading + " bonus to evasion and damage reduction.");
             }
 
             if (IsAggressive > 0)
             {
-                Battlefield.WindowController.Hint.Add(Name + " has a temporary +" + IsAggressive + " bonus to accuracy and attack damage.");
+                TeamBattlefield.WindowController.Hint.Add(Name + " has a temporary +" + IsAggressive + " bonus to accuracy and attack damage.");
             }
 
             if (IsExposed > 0)
             {
                 IsExposed -= 1;
-                if (IsExposed == 0) Battlefield.WindowController.Hint.Add(Name + " has recovered from the missed attack and is no longer Exposed!");
+                if (IsExposed == 0) TeamBattlefield.WindowController.Hint.Add(Name + " has recovered from the missed attack and is no longer Exposed!");
             }
 
             if (HP <= KoValue && IsUnconscious == false)
             {
                 IsUnconscious = true;
-                //Battlefield.WindowController.Hit.Add(Name + " is permanently Knocked Out (or extremely dizzy, and can not resist)! Feel free to use this opportunity! " + Name + " must not resist! Continue beating them to get a fatality suggestion.");
+                //TeamBattlefield.WindowController.Hit.Add(Name + " is permanently Knocked Out (or extremely dizzy, and can not resist)! Feel free to use this opportunity! " + Name + " must not resist! Continue beating them to get a fatality suggestion.");
             }
 
             if (HP <= DeathValue && IsDead == false)
             {
                 IsDead = true;
-                Battlefield.WindowController.Hit.Add("The fight is over! CLAIM YOUR SPOILS and VICTORY and FINISH YOUR OPPONENT!");
-                Battlefield.WindowController.Special.Add("FATALITY SUGGESTION: " + this.PickFatality());
-                Battlefield.WindowController.Special.Add("It is just a suggestion, you may not follow it if you don't want to.");
-                Battlefield.EndFight(Battlefield.GetActor(), Battlefield.GetTarget());
+                TeamBattlefield.WindowController.Hit.Add("The fight is over! CLAIM YOUR SPOILS and VICTORY and FINISH YOUR OPPONENT!");
+                TeamBattlefield.WindowController.Special.Add("FATALITY SUGGESTION: " + this.PickFatality());
+                TeamBattlefield.WindowController.Special.Add("It is just a suggestion, you may not follow it if you don't want to.");
+                TeamBattlefield.EndFight(TeamBattlefield.GetActor(), TeamBattlefield.GetTarget(), TeamBattlefield.GetTarget(), TeamBattlefield.GetTarget());
             }
         }
 
@@ -387,7 +387,7 @@ namespace RDVFSharp.Entities
         public bool ActionLight(int roll)
         {
             var attacker = this;
-            var target = Battlefield.GetTarget();
+            var target = TeamBattlefield.GetTarget();
             var damage = Utils.RollDice(new List<int>() { 5, 5 }) - 1 + attacker.Strength;
             damage += Math.Min(attacker.Strength, attacker.Spellpower);
             var requiredStam = 5;
@@ -421,40 +421,40 @@ namespace RDVFSharp.Entities
             {   //Not enough stamina-- reduced effect
                 damage *= attacker.Stamina / requiredStam;
                 difficulty += (int)Math.Ceiling((double)((requiredStam - attacker.Stamina) / requiredStam) * (20 - difficulty)); // Too tired? You might miss more often.
-                Battlefield.WindowController.Hint.Add(attacker.Name + " did not have enough stamina, and took penalties to the attack.");
+                TeamBattlefield.WindowController.Hint.Add(attacker.Name + " did not have enough stamina, and took penalties to the attack.");
             }
 
             attacker.HitStamina(requiredStam);
 
             var attackTable = attacker.BuildActionTable(difficulty, target.Dexterity, attacker.Dexterity, target.Stamina, target.StaminaCap);
             //If target can dodge the atatcker has to roll higher than the dodge value. Otherwise they need to roll higher than the miss value. We display the relevant value in the output.
-            Battlefield.WindowController.Info.Add("Dice Roll Required: " + (attackTable.miss + 1));
+            TeamBattlefield.WindowController.Info.Add("Dice Roll Required: " + (attackTable.miss + 1));
 
             if (roll <= attackTable.miss)
             {   //Miss-- no effect.
-                Battlefield.WindowController.Hit.Add(" FAILED! ");
+                TeamBattlefield.WindowController.Hit.Add(" FAILED! ");
                 return false; //Failed attack, if we ever need to check that.
             }
 
             if (roll >= attackTable.crit)
             { //Critical Hit-- increased damage/effect, typically 3x damage if there are no other bonuses.
-                Battlefield.WindowController.Hit.Add(" CRITICAL HIT! ");
-                Battlefield.WindowController.Hint.Add(attacker.Name + " landed a particularly vicious blow!");
+                TeamBattlefield.WindowController.Hit.Add(" CRITICAL HIT! ");
+                TeamBattlefield.WindowController.Hint.Add(attacker.Name + " landed a particularly vicious blow!");
                 damage += 10;
             }
             else
             { //Normal hit.
-                Battlefield.WindowController.Hit.Add(" HIT! ");
+                TeamBattlefield.WindowController.Hit.Add(" HIT! ");
             }
 
             //Deal all the actual damage/effects here.
 
-            if (Battlefield.InGrabRange)
+            if (TeamBattlefield.InGrabRange)
             {// Succesful attacks will beat back the grabber before they can grab you, but not if you're already grappling.
                 if (!attacker.IsRestrained && !target.IsRestrained)
                 {
-                    Battlefield.InGrabRange = false;
-                    Battlefield.WindowController.Hit.Add(attacker.Name + " distracted " + target.Name + " with the attack and was able to move out of grappling range!");
+                    TeamBattlefield.InGrabRange = false;
+                    TeamBattlefield.WindowController.Hit.Add(attacker.Name + " distracted " + target.Name + " with the attack and was able to move out of grappling range!");
                 }
             }
 
@@ -470,7 +470,7 @@ namespace RDVFSharp.Entities
         public bool ActionHeavy(int roll)
         {
             var attacker = this;
-            var target = Battlefield.GetTarget();
+            var target = TeamBattlefield.GetTarget();
             var damage = Utils.RollDice(new List<int>() { 5, 5 }) - 1 + attacker.Strength;
             damage *= 2;
             damage += Math.Min(attacker.Strength, attacker.Spellpower);
@@ -507,42 +507,42 @@ namespace RDVFSharp.Entities
                 critCheck = false;
                 damage *= attacker.Stamina / requiredStam;
                 difficulty += (int)Math.Ceiling((double)((requiredStam - attacker.Stamina) / requiredStam) * (20 - difficulty)); // Too tired? You're likely to miss.
-                Battlefield.WindowController.Hint.Add(attacker.Name + " did not have enough stamina, and took penalties to the attack.");
+                TeamBattlefield.WindowController.Hint.Add(attacker.Name + " did not have enough stamina, and took penalties to the attack.");
             }
 
             attacker.HitStamina(requiredStam); //Now that stamina has been checked, reduce the attacker's stamina by the appopriate amount.
 
             var attackTable = attacker.BuildActionTable(difficulty, target.Dexterity, attacker.Dexterity, target.Stamina, target.StaminaCap);
             //If target can dodge the atatcker has to roll higher than the dodge value. Otherwise they need to roll higher than the miss value. We display the relevant value in the output.
-            Battlefield.WindowController.Info.Add("Dice Roll Required: " + (attackTable.miss + 1));
+            TeamBattlefield.WindowController.Info.Add("Dice Roll Required: " + (attackTable.miss + 1));
 
             if (roll <= attackTable.miss)
             {   //Miss-- no effect.
-                Battlefield.WindowController.Hit.Add(" FAILED! ");
+                TeamBattlefield.WindowController.Hit.Add(" FAILED! ");
                 attacker.IsExposed += 2; //If the fighter misses a big attack, it leaves them open and they have to recover balance which gives the opponent a chance to strike.
-                Battlefield.WindowController.Hint.Add(attacker.Name + " was left wide open by the failed attack and is now Exposed! " + target.Name + " has -2 difficulty to hit and can use Grab even if fighters are not in grappling range!");
+                TeamBattlefield.WindowController.Hint.Add(attacker.Name + " was left wide open by the failed attack and is now Exposed! " + target.Name + " has -2 difficulty to hit and can use Grab even if fighters are not in grappling range!");
                 return false; //Failed attack, if we ever need to check that.
             }
 
             if (roll >= attackTable.crit && critCheck == true)
             { //Critical Hit-- increased damage/effect, typically 3x damage if there are no other bonuses.
-                Battlefield.WindowController.Hit.Add(" CRITICAL HIT! ");
-                Battlefield.WindowController.Hint.Add(attacker.Name + " landed a particularly vicious blow!");
+                TeamBattlefield.WindowController.Hit.Add(" CRITICAL HIT! ");
+                TeamBattlefield.WindowController.Hint.Add(attacker.Name + " landed a particularly vicious blow!");
                 damage += 10;
             }
             else
             { //Normal hit.
-                Battlefield.WindowController.Hit.Add(" HIT! ");
+                TeamBattlefield.WindowController.Hit.Add(" HIT! ");
             }
 
             //Deal all the actual damage/effects here.
 
-            if (Battlefield.InGrabRange)
+            if (TeamBattlefield.InGrabRange)
             {// Succesful attacks will beat back the grabber before they can grab you, but not if you're already grappling.
                 if (!attacker.IsRestrained && !target.IsRestrained)
                 {
-                    Battlefield.InGrabRange = false;
-                    Battlefield.WindowController.Hit.Add(attacker.Name + " distracted " + target.Name + " with the attack and was able to move out of grappling range!");
+                    TeamBattlefield.InGrabRange = false;
+                    TeamBattlefield.WindowController.Hit.Add(attacker.Name + " distracted " + target.Name + " with the attack and was able to move out of grappling range!");
                 }
             }
 
@@ -557,7 +557,7 @@ namespace RDVFSharp.Entities
         public bool ActionGrab(int roll)
         {
             var attacker = this;
-            var target = Battlefield.GetTarget();
+            var target = TeamBattlefield.GetTarget();
             var damage = Utils.RollDice(new List<int>() { 5, 5 }) - 1 + attacker.Strength;
             damage /= 2;
             var requiredStam = 5;
@@ -585,7 +585,7 @@ namespace RDVFSharp.Entities
                 critCheck = false;
                 damage *= attacker.Stamina / requiredStam;
                 difficulty += (int)Math.Ceiling((double)((requiredStam - attacker.Stamina) / requiredStam) * (20 - difficulty)); // Too tired? You're likely to miss.
-                Battlefield.WindowController.Hint.Add(attacker.Name + " did not have enough stamina, and took penalties to the attack.");
+                TeamBattlefield.WindowController.Hint.Add(attacker.Name + " did not have enough stamina, and took penalties to the attack.");
             }
 
             attacker.HitStamina(requiredStam); //Now that stamina has been checked, reduce the attacker's stamina by the appopriate amount. (We'll hit the attacker up for the rest on a miss or a dodge).
@@ -600,30 +600,30 @@ namespace RDVFSharp.Entities
 
             var attackTable = attacker.BuildActionTable(difficulty, target.Dexterity, attacker.Dexterity, target.Stamina, target.StaminaCap);
             //If target can dodge the atatcker has to roll higher than the dodge value. Otherwise they need to roll higher than the miss value. We display the relevant value in the output.
-            Battlefield.WindowController.Info.Add("Dice Roll Required: " + (attackTable.miss + 1));
+            TeamBattlefield.WindowController.Info.Add("Dice Roll Required: " + (attackTable.miss + 1));
 
             if (roll <= attackTable.miss)
             {   //Miss-- no effect.
-                Battlefield.WindowController.Hit.Add(" FAILED! ");
-                Battlefield.WindowController.Hint.Add(attacker.Name + " failed to establish a hold!");
+                TeamBattlefield.WindowController.Hit.Add(" FAILED! ");
+                TeamBattlefield.WindowController.Hint.Add(attacker.Name + " failed to establish a hold!");
                 return false; //Failed attack, if we ever need to check that.
             }
 
             if (roll >= attackTable.crit && critCheck)
             { //Critical Hit-- increased damage/effect, typically 3x damage if there are no other bonuses.
-                Battlefield.WindowController.Hit.Add(" CRITICAL HIT! ");
-                Battlefield.WindowController.Hint.Add("Critical! " + attacker.Name + " found a particularly good hold!");
+                TeamBattlefield.WindowController.Hit.Add(" CRITICAL HIT! ");
+                TeamBattlefield.WindowController.Hint.Add("Critical! " + attacker.Name + " found a particularly good hold!");
                 damage += 10;
             }
 
             //grab can only be used when you are not grappling the target, so we no longer need the old check.
-            Battlefield.WindowController.Hit.Add(attacker.Name + " GRABBED " + target.Name + "! ");
-            Battlefield.WindowController.Hint.Add(target.Name + " is being grappled! " + attacker.Name + " has reduced difficulty to use melee attacks and can also use the special attacks Throw and Submission.");
-            Battlefield.WindowController.Hint.Add(target.Name + " can try to escape the grapple by using Move, Throw, or Teleport.");
+            TeamBattlefield.WindowController.Hit.Add(attacker.Name + " GRABBED " + target.Name + "! ");
+            TeamBattlefield.WindowController.Hint.Add(target.Name + " is being grappled! " + attacker.Name + " has reduced difficulty to use melee attacks and can also use the special attacks Throw and Submission.");
+            TeamBattlefield.WindowController.Hint.Add(target.Name + " can try to escape the grapple by using Move, Throw, or Teleport.");
             target.IsGrappledBy.Add(attacker.Name);
 
             //If we managed to grab without being in grab range, we are certainly in grabe range afterwards.
-            if (!Battlefield.InGrabRange) Battlefield.InGrabRange = true;
+            if (!TeamBattlefield.InGrabRange) TeamBattlefield.InGrabRange = true;
 
             damage = Math.Max(damage, 1);
             target.HitHp(damage);
@@ -635,7 +635,7 @@ namespace RDVFSharp.Entities
         public bool ActionTackle(int roll)
         {
             var attacker = this;
-            var target = Battlefield.GetTarget();
+            var target = TeamBattlefield.GetTarget();
             var damage = Utils.RollDice(new List<int>() { 5, 5 }) - 1 + attacker.Strength;
             damage /= 2;
             var requiredStam = 10;
@@ -662,20 +662,20 @@ namespace RDVFSharp.Entities
                 critCheck = false;
                 damage *= attacker.Stamina / requiredStam;
                 difficulty += (int)Math.Ceiling((double)((requiredStam - attacker.Stamina) / requiredStam) * (20 - difficulty)); // Too tired? You're likely to miss.
-                Battlefield.WindowController.Hint.Add(attacker.Name + " did not have enough stamina, and took penalties to the attack.");
+                TeamBattlefield.WindowController.Hint.Add(attacker.Name + " did not have enough stamina, and took penalties to the attack.");
             }
 
             attacker.HitStamina(requiredStam); //Now that stamina has been checked, reduce the attacker's stamina by the appopriate amount. (We'll hit the attacker up for the rest on a miss or a dodge).
 
             var attackTable = attacker.BuildActionTable(difficulty, target.Dexterity, attacker.Dexterity, target.Stamina, target.StaminaCap);
             //If target can dodge the atatcker has to roll higher than the dodge value. Otherwise they need to roll higher than the miss value. We display the relevant value in the output.
-            Battlefield.WindowController.Info.Add("Dice Roll Required: " + (attackTable.miss + 1));
+            TeamBattlefield.WindowController.Info.Add("Dice Roll Required: " + (attackTable.miss + 1));
 
             if (roll <= attackTable.miss)
             {   //Miss-- no effect.
-                Battlefield.WindowController.Hit.Add(" FAILED!");
+                TeamBattlefield.WindowController.Hit.Add(" FAILED!");
                 attacker.IsExposed += 2; //If the fighter misses a big attack, it leaves them open and they have to recover balance which gives the opponent a chance to strike.
-                Battlefield.WindowController.Hint.Add(attacker.Name + " was left wide open by the failed attack and is now Exposed! " + target.Name + " has -2 difficulty to hit and can use Grab even if fighters are not in grappling range!");
+                TeamBattlefield.WindowController.Hint.Add(attacker.Name + " was left wide open by the failed attack and is now Exposed! " + target.Name + " has -2 difficulty to hit and can use Grab even if fighters are not in grappling range!");
                 //If opponent fumbled on their previous action they should become stunned. Tackle is a special case because it stuns anyway if it hits, so we only do this on a miss.
                 if (target.Fumbled)
                 {
@@ -687,12 +687,12 @@ namespace RDVFSharp.Entities
 
             if (roll >= attackTable.crit && critCheck == true)
             { //Critical Hit-- increased damage/effect, typically 3x damage if there are no other bonuses.
-                Battlefield.WindowController.Hint.Add("Critical Hit! " + attacker.Name + " really drove that one home!");
+                TeamBattlefield.WindowController.Hint.Add("Critical Hit! " + attacker.Name + " really drove that one home!");
                 damage += 10;
             }
 
-            Battlefield.InGrabRange = true;//A regular tackle will put you close enough to your opponent to initiate a grab.
-            Battlefield.WindowController.Hit.Add(attacker.Name + " TACKLED " + target.Name + ". " + attacker.Name + " can take another action while their opponent is stunned!");
+            TeamBattlefield.InGrabRange = true;//A regular tackle will put you close enough to your opponent to initiate a grab.
+            TeamBattlefield.WindowController.Hit.Add(attacker.Name + " TACKLED " + target.Name + ". " + attacker.Name + " can take another action while their opponent is stunned!");
 
             //Deal all the actual damage/effects here.
 
@@ -706,7 +706,7 @@ namespace RDVFSharp.Entities
         public bool ActionRanged(int roll)
         {
             var attacker = this;
-            var target = Battlefield.GetTarget();
+            var target = TeamBattlefield.GetTarget();
             var damage = Utils.RollDice(new List<int>() { 5, 5 }) - 1;
             damage *= 2;
             damage += ( attacker.Strength + attacker.Dexterity );
@@ -747,40 +747,40 @@ namespace RDVFSharp.Entities
                 critCheck = false;
                 damage *= attacker.Stamina / requiredStam;
                 difficulty += (int)Math.Ceiling((double)((requiredStam - attacker.Stamina) / requiredStam) * (20 - difficulty)); // Too tired? You're likely to miss.
-                Battlefield.WindowController.Hint.Add(attacker.Name + " did not have enough stamina, and took penalties to the attack.");
+                TeamBattlefield.WindowController.Hint.Add(attacker.Name + " did not have enough stamina, and took penalties to the attack.");
             }
 
             attacker.HitStamina(requiredStam); //Now that stamina has been checked, reduce the attacker's stamina by the appopriate amount.
 
             var attackTable = attacker.BuildActionTable(difficulty, target.Dexterity, attacker.Dexterity, target.Stamina, target.StaminaCap);
             //If target can dodge the atatcker has to roll higher than the dodge value. Otherwise they need to roll higher than the miss value. We display the relevant value in the output.
-            Battlefield.WindowController.Info.Add("Dice Roll Required: " + (attackTable.miss + 1));
+            TeamBattlefield.WindowController.Info.Add("Dice Roll Required: " + (attackTable.miss + 1));
 
             if (roll <= attackTable.miss)
             {   //Miss-- no effect.
-                Battlefield.WindowController.Hit.Add(" FAILED!");
+                TeamBattlefield.WindowController.Hit.Add(" FAILED!");
                 return false; //Failed attack, if we ever need to check that.
             }
 
             if (roll >= attackTable.crit && critCheck == true)
             { //Critical Hit-- increased damage/effect, typically 3x damage if there are no other bonuses.
-                Battlefield.WindowController.Hit.Add(" CRITICAL HIT! ");
-                Battlefield.WindowController.Hint.Add(attacker.Name + " hit somewhere that really hurts!");
+                TeamBattlefield.WindowController.Hit.Add(" CRITICAL HIT! ");
+                TeamBattlefield.WindowController.Hint.Add(attacker.Name + " hit somewhere that really hurts!");
                 damage += 10;
             }
             else
             { //Normal hit.
-                Battlefield.WindowController.Hit.Add(" HIT! ");
+                TeamBattlefield.WindowController.Hit.Add(" HIT! ");
             }
 
             //Deal all the actual damage/effects here.
 
-            if (Battlefield.InGrabRange)
+            if (TeamBattlefield.InGrabRange)
             {// Succesful attacks will beat back the grabber before they can grab you, but not if you're already grappling.
                 if (!attacker.IsRestrained && !target.IsRestrained)
                 {
-                    Battlefield.InGrabRange = false;
-                    Battlefield.WindowController.Hit.Add(attacker.Name + " distracted " + target.Name + " with the attack and was able to move out of grappling range!");
+                    TeamBattlefield.InGrabRange = false;
+                    TeamBattlefield.WindowController.Hit.Add(attacker.Name + " distracted " + target.Name + " with the attack and was able to move out of grappling range!");
                 }
             }
 
@@ -795,7 +795,7 @@ namespace RDVFSharp.Entities
         public bool ActionMagic(int roll)
         {
             var attacker = this;
-            var target = Battlefield.GetTarget();
+            var target = TeamBattlefield.GetTarget();
             var damage = Utils.RollDice(new List<int>() { 5, 5 }) - 1 + attacker.Spellpower;
             damage *= 2;
             damage += Math.Min(attacker.Strength, attacker.Spellpower);
@@ -832,43 +832,43 @@ namespace RDVFSharp.Entities
                 critCheck = false;
                 damage *= attacker.Mana / requiredMana;
                 difficulty += (int)Math.Ceiling((double)((requiredMana - attacker.Mana) / requiredMana) * (20 - difficulty)); // Too tired? You're likely to have your spell fizzle.
-                Battlefield.WindowController.Hint.Add(attacker.Name + " did not have enough mana, and took penalties to the attack.");
+                TeamBattlefield.WindowController.Hint.Add(attacker.Name + " did not have enough mana, and took penalties to the attack.");
             }
 
             attacker.HitMana(requiredMana); //Now that required mana has been checked, reduce the attacker's mana by the appopriate amount.
 
             var attackTable = attacker.BuildActionTable(difficulty, target.Dexterity, attacker.Dexterity, target.Mana, target.ManaCap);
             //If target can dodge the atatcker has to roll higher than the dodge value. Otherwise they need to roll higher than the miss value. We display the relevant value in the output.
-            Battlefield.WindowController.Info.Add("Dice Roll Required: " + (attackTable.miss + 1));
+            TeamBattlefield.WindowController.Info.Add("Dice Roll Required: " + (attackTable.miss + 1));
 
             if (roll <= attackTable.miss)
             {   //Miss-- no effect.
-                Battlefield.WindowController.Hit.Add(" FAILED!");
+                TeamBattlefield.WindowController.Hit.Add(" FAILED!");
                 attacker.IsExposed += 2; //If the fighter misses a big attack, it leaves them open and they have to recover balance which gives the opponent a chance to strike.
-                Battlefield.WindowController.Hint.Add(attacker.Name + " was left wide open by the failed attack and is now Exposed! " + target.Name + " has -2 difficulty to hit and can use Grab even if fighters are not in grappling range!");
+                TeamBattlefield.WindowController.Hint.Add(attacker.Name + " was left wide open by the failed attack and is now Exposed! " + target.Name + " has -2 difficulty to hit and can use Grab even if fighters are not in grappling range!");
                 return false; //Failed attack, if we ever need to check that.
             }
 
             if (roll >= attackTable.crit)
             { //Critical Hit-- increased damage/effect, typically 3x damage if there are no other bonuses.
-                Battlefield.WindowController.Hit.Add(" CRITICAL HIT! ");
-                Battlefield.WindowController.Hint.Add(attacker.Name + " landed a particularly vicious blow!");
+                TeamBattlefield.WindowController.Hit.Add(" CRITICAL HIT! ");
+                TeamBattlefield.WindowController.Hint.Add(attacker.Name + " landed a particularly vicious blow!");
                 damage += 10;
-                Battlefield.WindowController.Hint.Add("Critical Hit! " + attacker.Name + "'s magic worked abnormally well! " + target.Name + " is dazed and disoriented.");
+                TeamBattlefield.WindowController.Hint.Add("Critical Hit! " + attacker.Name + "'s magic worked abnormally well! " + target.Name + " is dazed and disoriented.");
             }
             else
             { //Normal hit.
-                Battlefield.WindowController.Hit.Add("MAGIC HIT! ");
+                TeamBattlefield.WindowController.Hit.Add("MAGIC HIT! ");
             }
 
             //Deal all the actual damage/effects here.
 
-            if (Battlefield.InGrabRange)
+            if (TeamBattlefield.InGrabRange)
             {// Succesful attacks will beat back the grabber before they can grab you, but not if you're already grappling.
                 if (!attacker.IsRestrained && !target.IsRestrained)
                 {
-                    Battlefield.InGrabRange = false;
-                    Battlefield.WindowController.Hit.Add(attacker.Name + " distracted " + target.Name + " with the attack and was able to move out of grappling range!");
+                    TeamBattlefield.InGrabRange = false;
+                    TeamBattlefield.WindowController.Hit.Add(attacker.Name + " distracted " + target.Name + " with the attack and was able to move out of grappling range!");
                 }
             }
 
@@ -883,7 +883,7 @@ namespace RDVFSharp.Entities
         public bool ActionMana(int roll)
         {
             var attacker = this;
-            var target = Battlefield.GetTarget();
+            var target = TeamBattlefield.GetTarget();
             var damage = Utils.RollDice(new List<int>() { 5, 5 }) - 1 + attacker.Spellpower;
             damage *= 2;
             damage += Math.Min(attacker.Strength, attacker.Spellpower);
@@ -920,43 +920,43 @@ namespace RDVFSharp.Entities
                 critCheck = false;
                 damage *= attacker.Mana / requiredMana;
                 difficulty += (int)Math.Ceiling((double)((requiredMana - attacker.Mana) / requiredMana) * (20 - difficulty)); // Too tired? You're likely to have your spell fizzle.
-                Battlefield.WindowController.Hint.Add(attacker.Name + " did not have enough mana, and took penalties to the attack.");
+                TeamBattlefield.WindowController.Hint.Add(attacker.Name + " did not have enough mana, and took penalties to the attack.");
             }
 
             attacker.HitMana(requiredMana); //Now that required mana has been checked, reduce the attacker's mana by the appopriate amount.
 
             var attackTable = attacker.BuildActionTable(difficulty, target.Dexterity, attacker.Dexterity, target.Mana, target.ManaCap);
             //If target can dodge the atatcker has to roll higher than the dodge value. Otherwise they need to roll higher than the miss value. We display the relevant value in the output.
-            Battlefield.WindowController.Info.Add("Dice Roll Required: " + (attackTable.miss + 1));
+            TeamBattlefield.WindowController.Info.Add("Dice Roll Required: " + (attackTable.miss + 1));
 
             if (roll <= attackTable.miss)
             {   //Miss-- no effect.
-                Battlefield.WindowController.Hit.Add(" FAILED!");
+                TeamBattlefield.WindowController.Hit.Add(" FAILED!");
                 attacker.IsExposed += 2; //If the fighter misses a big attack, it leaves them open and they have to recover balance which gives the opponent a chance to strike.
-                Battlefield.WindowController.Hint.Add(attacker.Name + " was left wide open by the failed attack and is now Exposed! " + target.Name + " has -2 difficulty to hit and can use Grab even if fighters are not in grappling range!");
+                TeamBattlefield.WindowController.Hint.Add(attacker.Name + " was left wide open by the failed attack and is now Exposed! " + target.Name + " has -2 difficulty to hit and can use Grab even if fighters are not in grappling range!");
                 return false; //Failed attack, if we ever need to check that.
             }
 
             if (roll >= attackTable.crit)
             { //Critical Hit-- increased damage/effect, typically 3x damage if there are no other bonuses.
-                Battlefield.WindowController.Hit.Add(" CRITICAL HIT! ");
-                Battlefield.WindowController.Hint.Add(attacker.Name + " landed a particularly vicious blow!");
+                TeamBattlefield.WindowController.Hit.Add(" CRITICAL HIT! ");
+                TeamBattlefield.WindowController.Hint.Add(attacker.Name + " landed a particularly vicious blow!");
                 damage += 10;
-                Battlefield.WindowController.Hint.Add("Critical Hit! " + attacker.Name + "'s magic worked abnormally well! " + target.Name + " is dazed and disoriented.");
+                TeamBattlefield.WindowController.Hint.Add("Critical Hit! " + attacker.Name + "'s magic worked abnormally well! " + target.Name + " is dazed and disoriented.");
             }
             else
             { //Normal hit.
-                Battlefield.WindowController.Hit.Add("MAGIC HIT! ");
+                TeamBattlefield.WindowController.Hit.Add("MAGIC HIT! ");
             }
 
             //Deal all the actual damage/effects here.
 
-            if (Battlefield.InGrabRange)
+            if (TeamBattlefield.InGrabRange)
             {// Succesful attacks will beat back the grabber before they can grab you, but not if you're already grappling.
                 if (!attacker.IsRestrained && !target.IsRestrained)
                 {
-                    Battlefield.InGrabRange = false;
-                    Battlefield.WindowController.Hit.Add(attacker.Name + " distracted " + target.Name + " with the attack and was able to move out of grappling range!");
+                    TeamBattlefield.InGrabRange = false;
+                    TeamBattlefield.WindowController.Hit.Add(attacker.Name + " distracted " + target.Name + " with the attack and was able to move out of grappling range!");
                 }
             }
 
@@ -972,7 +972,7 @@ namespace RDVFSharp.Entities
         public bool ActionHex(int roll)
         {
             var attacker = this;
-            var target = Battlefield.GetTarget();
+            var target = TeamBattlefield.GetTarget();
             var damage = Utils.RollDice(new List<int>() { 5, 5 }) - 1 + attacker.Spellpower;
             damage += Math.Min(attacker.Strength, attacker.Spellpower);
             var requiredMana = 5;
@@ -1009,41 +1009,41 @@ namespace RDVFSharp.Entities
                 critCheck = false;
                 damage *= attacker.Mana  / requiredMana;
                 difficulty += (int)Math.Ceiling((double)((requiredMana - attacker.Mana ) / requiredMana) * (20 - difficulty)); // Too tired? You're likely to have your spell fizzle.
-                Battlefield.WindowController.Hint.Add(attacker.Name + " did not have enough mana, and took penalties to the attack.");
+                TeamBattlefield.WindowController.Hint.Add(attacker.Name + " did not have enough mana, and took penalties to the attack.");
             }
 
             attacker.HitMana(requiredMana); //Now that required mana has been checked, reduce the attacker's mana by the appopriate amount.
 
             var attackTable = attacker.BuildActionTable(difficulty, target.Dexterity, attacker.Dexterity, target.Mana, target.ManaCap);
             //If target can dodge the atatcker has to roll higher than the dodge value. Otherwise they need to roll higher than the miss value. We display the relevant value in the output.
-            Battlefield.WindowController.Info.Add("Dice Roll Required: " + (attackTable.miss + 1));
+            TeamBattlefield.WindowController.Info.Add("Dice Roll Required: " + (attackTable.miss + 1));
 
             if (roll <= attackTable.miss)
             {   //Miss-- no effect.
-                Battlefield.WindowController.Hit.Add(" FAILED! ");
+                TeamBattlefield.WindowController.Hit.Add(" FAILED! ");
                 return false; //Failed attack, if we ever need to check that.
             }
 
             if (roll >= attackTable.crit)
             { //Critical Hit-- increased damage/effect, typically 3x damage if there are no other bonuses.
-                Battlefield.WindowController.Hit.Add(" CRITICAL HIT! ");
-                Battlefield.WindowController.Hint.Add(attacker.Name + " landed a particularly vicious blow!");
+                TeamBattlefield.WindowController.Hit.Add(" CRITICAL HIT! ");
+                TeamBattlefield.WindowController.Hint.Add(attacker.Name + " landed a particularly vicious blow!");
                 damage += 10;
-                Battlefield.WindowController.Hint.Add("Critical Hit! " + attacker.Name + "'s magic worked abnormally well! " + target.Name + " is dazed and disoriented.");
+                TeamBattlefield.WindowController.Hint.Add("Critical Hit! " + attacker.Name + "'s magic worked abnormally well! " + target.Name + " is dazed and disoriented.");
             }
             else
             { //Normal hit.
-                Battlefield.WindowController.Hit.Add("MAGIC HIT! ");
+                TeamBattlefield.WindowController.Hit.Add("MAGIC HIT! ");
             }
 
             //Deal all the actual damage/effects here.
 
-            if (Battlefield.InGrabRange)
+            if (TeamBattlefield.InGrabRange)
             {// Succesful attacks will beat back the grabber before they can grab you, but not if you're already grappling.
                 if (!attacker.IsRestrained && !target.IsRestrained)
                 {
-                    Battlefield.InGrabRange = false;
-                    Battlefield.WindowController.Hit.Add(attacker.Name + " distracted " + target.Name + " with the attack and was able to move out of grappling range!");
+                    TeamBattlefield.InGrabRange = false;
+                    TeamBattlefield.WindowController.Hit.Add(attacker.Name + " distracted " + target.Name + " with the attack and was able to move out of grappling range!");
                 }
             }
 
@@ -1059,7 +1059,7 @@ namespace RDVFSharp.Entities
         public bool ActionCurse(int roll)
         {
             var attacker = this;
-            var target = Battlefield.GetTarget();
+            var target = TeamBattlefield.GetTarget();
             var damage = 11 + attacker.Spellpower - attacker.Strength;
             damage *= 2;
             var requiredMana = 20;
@@ -1097,42 +1097,42 @@ namespace RDVFSharp.Entities
                 critCheck = false;
                 damage *= attacker.Mana / requiredMana;
                 difficulty += (int)Math.Ceiling((double)((requiredMana - attacker.Mana) / requiredMana) * (20 - difficulty)); // Too tired? You're likely to have your spell fizzle.
-                Battlefield.WindowController.Hint.Add(attacker.Name + " did not have enough mana, and took penalties to the attack.");
+                TeamBattlefield.WindowController.Hint.Add(attacker.Name + " did not have enough mana, and took penalties to the attack.");
             }
 
             attacker.HitMana(requiredMana); //Now that required mana has been checked, reduce the attacker's mana by the appopriate amount.
 
             var attackTable = attacker.BuildActionTable(difficulty, target.Dexterity, attacker.Dexterity, target.Mana, target.ManaCap);
             //If target can dodge the atatcker has to roll higher than the dodge value. Otherwise they need to roll higher than the miss value. We display the relevant value in the output.
-            Battlefield.WindowController.Info.Add("Dice Roll Required: " + (attackTable.miss + 1));
+            TeamBattlefield.WindowController.Info.Add("Dice Roll Required: " + (attackTable.miss + 1));
 
             if (roll <= attackTable.miss)
             {   //Miss-- no effect. Happens during grappling.
-                Battlefield.WindowController.Hit.Add(" CURSE FAILED! Curse may not be used again by the attacker!");
+                TeamBattlefield.WindowController.Hit.Add(" CURSE FAILED! Curse may not be used again by the attacker!");
                 attacker.CurseUsed += 10;
                 return false; //Failed attack, if we ever need to check that.
             }
 
             if (roll >= attackTable.crit)
             { //Critical Hit-- increased damage/effect, typically 3x damage if there are no other bonuses.
-                Battlefield.WindowController.Hit.Add(" CRITICAL HIT! ");
-                Battlefield.WindowController.Hint.Add(attacker.Name + " landed a particularly vicious blow!");
+                TeamBattlefield.WindowController.Hit.Add(" CRITICAL HIT! ");
+                TeamBattlefield.WindowController.Hint.Add(attacker.Name + " landed a particularly vicious blow!");
                 damage += 10;
-                Battlefield.WindowController.Hint.Add("Critical Hit! " + attacker.Name + "'s magic worked abnormally well! " + target.Name + " is dazed and disoriented.");
+                TeamBattlefield.WindowController.Hint.Add("Critical Hit! " + attacker.Name + "'s magic worked abnormally well! " + target.Name + " is dazed and disoriented.");
             }
             else
             { //Normal hit.
-                Battlefield.WindowController.Hit.Add("CURSE HIT! Curse may not be used again by the attacker!");
+                TeamBattlefield.WindowController.Hit.Add("CURSE HIT! Curse may not be used again by the attacker!");
             }
 
             //Deal all the actual damage/effects here.
 
-            if (Battlefield.InGrabRange)
+            if (TeamBattlefield.InGrabRange)
             {// Succesful attacks will beat back the grabber before they can grab you, but not if you're already grappling.
                 if (!attacker.IsRestrained && !target.IsRestrained)
                 {
-                    Battlefield.InGrabRange = false;
-                    Battlefield.WindowController.Hit.Add(attacker.Name + " distracted " + target.Name + " with the attack and was able to move out of grappling range!");
+                    TeamBattlefield.InGrabRange = false;
+                    TeamBattlefield.WindowController.Hit.Add(attacker.Name + " distracted " + target.Name + " with the attack and was able to move out of grappling range!");
                 }
             }
 
@@ -1149,7 +1149,7 @@ namespace RDVFSharp.Entities
                 public bool ActionSpell(int roll)
         {
             var attacker = this;
-            var target = Battlefield.GetTarget();
+            var target = TeamBattlefield.GetTarget();
             var damage = Utils.RollDice(new List<int>() { 5, 5 }) - 1 + attacker.Spellpower;
             damage *= 2;
             damage += Math.Min(attacker.Strength, attacker.Spellpower);
@@ -1188,41 +1188,41 @@ namespace RDVFSharp.Entities
                 critCheck = false;
                 damage *= attacker.Mana / requiredMana;
                 difficulty += (int)Math.Ceiling((double)((requiredMana - attacker.Mana) / requiredMana) * (20 - difficulty)); // Too tired? You're likely to have your spell fizzle.
-                Battlefield.WindowController.Hint.Add(attacker.Name + " did not have enough mana, and took penalties to the attack.");
+                TeamBattlefield.WindowController.Hint.Add(attacker.Name + " did not have enough mana, and took penalties to the attack.");
             }
 
             attacker.HitMana(requiredMana); //Now that required mana has been checked, reduce the attacker's mana by the appopriate amount.
 
             var attackTable = attacker.BuildActionTable(difficulty, target.Dexterity, attacker.Dexterity, target.Mana, target.ManaCap);
             //If target can dodge the atatcker has to roll higher than the dodge value. Otherwise they need to roll higher than the miss value. We display the relevant value in the output.
-            Battlefield.WindowController.Info.Add("Dice Roll Required: " + (attackTable.miss + 1));
+            TeamBattlefield.WindowController.Info.Add("Dice Roll Required: " + (attackTable.miss + 1));
 
             if (roll <= attackTable.miss)
             {   //Miss-- no effect. Happens during grappling.
-                Battlefield.WindowController.Hit.Add(" FAILED! ");
+                TeamBattlefield.WindowController.Hit.Add(" FAILED! ");
                 return false; //Failed attack, if we ever need to check that.
             }
 
             if (roll >= attackTable.crit)
             { //Critical Hit-- increased damage/effect, typically 3x damage if there are no other bonuses.
-                Battlefield.WindowController.Hit.Add(" CRITICAL HIT! ");
-                Battlefield.WindowController.Hint.Add(attacker.Name + " landed a particularly vicious blow!");
+                TeamBattlefield.WindowController.Hit.Add(" CRITICAL HIT! ");
+                TeamBattlefield.WindowController.Hint.Add(attacker.Name + " landed a particularly vicious blow!");
                 damage += 10;
-                Battlefield.WindowController.Hint.Add("Critical Hit! " + attacker.Name + "'s magic worked abnormally well! " + target.Name + " is dazed and disoriented.");
+                TeamBattlefield.WindowController.Hint.Add("Critical Hit! " + attacker.Name + "'s magic worked abnormally well! " + target.Name + " is dazed and disoriented.");
             }
             else
             { //Normal hit.
-                Battlefield.WindowController.Hit.Add("MAGIC HIT! ");
+                TeamBattlefield.WindowController.Hit.Add("MAGIC HIT! ");
             }
 
             //Deal all the actual damage/effects here.
 
-            if (Battlefield.InGrabRange)
+            if (TeamBattlefield.InGrabRange)
             {// Succesful attacks will beat back the grabber before they can grab you, but not if you're already grappling.
                 if (!attacker.IsRestrained && !target.IsRestrained)
                 {
-                    Battlefield.InGrabRange = false;
-                    Battlefield.WindowController.Hit.Add(attacker.Name + " distracted " + target.Name + " with the attack and was able to move out of grappling range!");
+                    TeamBattlefield.InGrabRange = false;
+                    TeamBattlefield.WindowController.Hit.Add(attacker.Name + " distracted " + target.Name + " with the attack and was able to move out of grappling range!");
                 }
             }
 
@@ -1238,7 +1238,7 @@ namespace RDVFSharp.Entities
         public bool ActionRest(int roll)
         {
             var attacker = this;
-            var target = Battlefield.GetTarget();
+            var target = TeamBattlefield.GetTarget();
             var difficulty = 1; //Base difficulty, rolls greater than this amount will succeed.
 
             //if (attacker.IsDisoriented) difficulty += 2; //Up the difficulty if you are dizzy.
@@ -1256,14 +1256,14 @@ namespace RDVFSharp.Entities
 
             if (roll <= difficulty)
             {   //Failed!
-                Battlefield.WindowController.Hint.Add(attacker.Name + " was too disoriented or distracted to get any benefit from resting.");
+                TeamBattlefield.WindowController.Hint.Add(attacker.Name + " was too disoriented or distracted to get any benefit from resting.");
                 return false; //Failed action, if we ever need to check that.
             }
 
             if (roll == 20)
             {
-                Battlefield.WindowController.Hit.Add("CRITICAL SUCCESS! ");
-                Battlefield.WindowController.Hint.Add(attacker.Name + " can perform another action!");
+                TeamBattlefield.WindowController.Hit.Add("CRITICAL SUCCESS! ");
+                TeamBattlefield.WindowController.Hint.Add(attacker.Name + " can perform another action!");
                 target.IsStunned = true;
                 if (target.IsDisoriented > 0) target.IsDisoriented += 2;
                 if (target.IsExposed > 0) target.IsExposed += 2;
@@ -1276,22 +1276,22 @@ namespace RDVFSharp.Entities
                 target.Fumbled = false;
             }
 
-            Battlefield.WindowController.Info.Add("Dice Roll Required: " + Math.Max(2, (difficulty + 1)));
+            TeamBattlefield.WindowController.Info.Add("Dice Roll Required: " + Math.Max(2, (difficulty + 1)));
             var staminaShift = 12 + (attacker.Willpower * 2);
             //staminaShift = Math.Min(staminaShift, attacker.mana);
 
             //attacker.StaminaCap = Math.Max(attacker.StaminaCap, attacker.Stamina + staminaShift);
             //attacker.HitMana(staminaShift);
             attacker.AddStamina(staminaShift);
-            Battlefield.WindowController.Hit.Add(attacker.Name + " REGENERATES STAMINA!"); //Removed Stamina cost.
-            Battlefield.WindowController.Hint.Add(attacker.Name + " recovered " + staminaShift + " stamina!");
+            TeamBattlefield.WindowController.Hit.Add(attacker.Name + " REGENERATES STAMINA!"); //Removed Stamina cost.
+            TeamBattlefield.WindowController.Hint.Add(attacker.Name + " recovered " + staminaShift + " stamina!");
             return true;
         }
 
         public bool ActionFocus(int roll)
         {
             var attacker = this;
-            var target = Battlefield.GetTarget();
+            var target = TeamBattlefield.GetTarget();
             var difficulty = 1; //Base difficulty, rolls greater than this amount will succeed.
 
             //if (attacker.IsDisoriented) difficulty += 2; //Up the difficulty if you are dizzy.
@@ -1309,14 +1309,14 @@ namespace RDVFSharp.Entities
 
             if (roll <= difficulty)
             {   //Failed!
-                Battlefield.WindowController.Hint.Add(attacker.Name + " was too disoriented or distracted to focus.");
+                TeamBattlefield.WindowController.Hint.Add(attacker.Name + " was too disoriented or distracted to focus.");
                 return false; //Failed action, if we ever need to check that.
             }
 
             if (roll == 20)
             {
-                Battlefield.WindowController.Hit.Add("CRITICAL SUCCESS! ");
-                Battlefield.WindowController.Hint.Add(attacker.Name + " can perform another action!");
+                TeamBattlefield.WindowController.Hit.Add("CRITICAL SUCCESS! ");
+                TeamBattlefield.WindowController.Hint.Add(attacker.Name + " can perform another action!");
                 target.IsStunned = true;
                 if (target.IsDisoriented > 0) target.IsDisoriented += 2;
                 if (target.IsExposed > 0) target.IsExposed += 2;
@@ -1329,8 +1329,8 @@ namespace RDVFSharp.Entities
                 target.Fumbled = false;
             }
 
-            Battlefield.WindowController.Info.Add("Dice Roll Required: " + Math.Max(2, (difficulty + 1)));
-            Battlefield.WindowController.Hit.Add(attacker.Name + " FOCUSES!");
+            TeamBattlefield.WindowController.Info.Add("Dice Roll Required: " + Math.Max(2, (difficulty + 1)));
+            TeamBattlefield.WindowController.Hit.Add(attacker.Name + " FOCUSES!");
             attacker.IsFocused += Utils.RollDice(new List<int>() { 6, 6, 6, 6 }) +10 + attacker.Willpower * 4;
             return true;
         }
@@ -1338,7 +1338,7 @@ namespace RDVFSharp.Entities
         public bool ActionChannel(int roll)
         {
             var attacker = this;
-            var target = Battlefield.GetTarget();
+            var target = TeamBattlefield.GetTarget();
             var difficulty = 1; //Base difficulty, rolls greater than this amount will succeed.
 
             //if (attacker.IsDisoriented) difficulty += 2; //Up the difficulty if you are dizzy.
@@ -1356,14 +1356,14 @@ namespace RDVFSharp.Entities
 
             if (roll <= difficulty)
             {   //Failed!
-                Battlefield.WindowController.Hint.Add(attacker.Name + " was too disoriented or distracted to channel mana.");
+                TeamBattlefield.WindowController.Hint.Add(attacker.Name + " was too disoriented or distracted to channel mana.");
                 return false; //Failed action, if we ever need to check that.
             }
 
             if (roll == 20)
             {
-                Battlefield.WindowController.Hit.Add("CRITICAL SUCCESS! ");
-                Battlefield.WindowController.Hint.Add(attacker.Name + " can perform another action!");
+                TeamBattlefield.WindowController.Hit.Add("CRITICAL SUCCESS! ");
+                TeamBattlefield.WindowController.Hint.Add(attacker.Name + " can perform another action!");
                 target.IsStunned = true;
                 if (target.IsDisoriented > 0) target.IsDisoriented += 2;
                 if (target.IsExposed > 0) target.IsExposed += 2;
@@ -1376,27 +1376,27 @@ namespace RDVFSharp.Entities
                 target.Fumbled = false;
             }
 
-            Battlefield.WindowController.Info.Add("Dice Roll Required: " + Math.Max(2, (difficulty + 1)));
+            TeamBattlefield.WindowController.Info.Add("Dice Roll Required: " + Math.Max(2, (difficulty + 1)));
             var manaShift = 12 + (attacker.Willpower * 2);
             //manaShift = Math.Min(manaShift, attacker.Stamina); //This also needs to be commented awaay if we want to remove stamina cost.
 
             //attacker._manaCap = Math.Max(attacker._manaCap, attacker.mana + manaShift);
             //attacker.HitStamina(manaShift);
             attacker.AddMana(manaShift);
-            Battlefield.WindowController.Hit.Add(attacker.Name + " GENERATES MANA!"); //Removed Stamina cost.
-            Battlefield.WindowController.Hint.Add(attacker.Name + " recovered " + manaShift + " mana!");
+            TeamBattlefield.WindowController.Hit.Add(attacker.Name + " GENERATES MANA!"); //Removed Stamina cost.
+            TeamBattlefield.WindowController.Hint.Add(attacker.Name + " recovered " + manaShift + " mana!");
             return true;
         }
 
         public void ActionSkip(int roll)
         {
-            Battlefield.WindowController.Hit.Add(Name + " skipped the turn! ");
+            TeamBattlefield.WindowController.Hit.Add(Name + " skipped the turn! ");
         }
 
         public void ActionFumble(int roll)
         {
             var attacker = this;
-            var target = Battlefield.GetTarget();
+            var target = TeamBattlefield.GetTarget();
 
             if (target.IsEvading > 0)
             {//Evasion bonus from move/teleport. Lasts 1 turn. We didn't make an attack and now it resets to 0.
@@ -1409,19 +1409,19 @@ namespace RDVFSharp.Entities
 
             attacker.IsExposed += 2;//Fumbling exposes you.
 
-            Battlefield.WindowController.Hit.Add(" FUMBLE! ");
+            TeamBattlefield.WindowController.Hit.Add(" FUMBLE! ");
 
             // Fumbles make you lose a turn, unless your opponent fumbled on their previous one in which case nobody should lose a turn and we just clear the fumbled status on them.
             // Reminder: if fumbled is true for you, your opponent's next normal action will stun you.
             if (!target.Fumbled)
             {
                 attacker.Fumbled = true;
-                Battlefield.WindowController.Hint.Add(attacker.Name + " loses the next action and is Exposed!");
+                TeamBattlefield.WindowController.Hint.Add(attacker.Name + " loses the next action and is Exposed!");
             }
             else
             {
                 target.Fumbled = false;
-                Battlefield.WindowController.Hint.Add("Both fighter fumbled and lost an action so it evens out, but you should still emote the fumble.");
+                TeamBattlefield.WindowController.Hint.Add("Both fighter fumbled and lost an action so it evens out, but you should still emote the fumble.");
             }
         }
 

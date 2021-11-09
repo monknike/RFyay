@@ -16,8 +16,10 @@ namespace RDVFSharp
         public TeamBattlefield CurrentTeamBattlefield { get; set; }
         public Fighter FirstFighter { get; set; }
         public Fighter SecondFighter { get; set; }
-        public Fighter ThirdFighter { get; set; }
-        public Fighter FourthFighter { get; set; }
+        public TeamFighter FirstTeamFighter { get; set; }
+        public TeamFighter SecondTeamFighter { get; set; }
+        public TeamFighter ThirdTeamFighter { get; set; }
+        public TeamFighter FourthTeamFighter { get; set; }
 
 
         public RDVFDataContext Context

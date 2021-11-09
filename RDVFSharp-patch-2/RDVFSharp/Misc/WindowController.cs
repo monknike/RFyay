@@ -91,9 +91,38 @@ namespace RDVFSharp
             Error.Clear();
         }
 
-        internal void UpdateOutput(TeamBattlefield teamBattlefield)
+        public void UpdateOutput(TeamBattlefield TeamBattlefield)
         {
-            throw new NotImplementedException();
+            Info.Add("This is " + TeamBattlefield.GetActor().Name + "'s turn.");
+            var lines = new List<string>(); ;
+            lines.Add("");
+            if (Action.Count > 0) lines[0] += FormatMessage(MessageType.Action, string.Join(" ", Action));
+            if (Damage != 0) lines[0] += FormatMessage(MessageType.Damage, Damage.ToString());
+            if (lines[0] == "") lines.Clear();
+
+            if (Hit.Count > 0) lines.Add(FormatMessage(MessageType.Hit, string.Join("\n", Hit)));
+            if (Status.Count > 0) lines.Add(string.Join("\n", Status));
+            if (Hint.Count > 0) lines.Add(FormatMessage(MessageType.Hint, string.Join("\n", Hint)));
+            if (Special.Count > 0) lines.Add(FormatMessage(MessageType.Special, string.Join("\n", Special)));
+            if (Info.Count > 0) lines.Add("\n" + string.Join("\n", Info));
+
+            LastMessageSent = string.Join("\n", lines);
+
+            TeamBattlefield.Plugin.FChatClient.SendMessageInChannel(LastMessageSent, TeamBattlefield.Plugin.Channel);
+            if (Error.Count > 0)
+            {
+                TeamBattlefield.Plugin.FChatClient.SendMessageInChannel(string.Join("\n", Error), TeamBattlefield.Plugin.Channel);
+            }
+
+            //clear messages from the queue once they have been displayed
+            Action.Clear();
+            Hit.Clear();
+            Damage = 0;
+            Status.Clear();
+            Hint.Clear();
+            Info.Clear();
+            Error.Clear();
+
         }
     }
 }

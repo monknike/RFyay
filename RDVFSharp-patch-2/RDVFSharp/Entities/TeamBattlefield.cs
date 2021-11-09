@@ -9,28 +9,28 @@ namespace RDVFSharp
 {
     public class TeamBattlefield
     {
-        public List<Fighter> Fighters { get; set; }
+        public List<TeamFighter> TeamFighters { get; set; }
         public string Stage { get; set; }
         public bool DisplayGrabbed { get; set; }
         public WindowController WindowController { get; set; }
 
-        private int currentFighter = 0;
+        private int currentTeamFighter = 0;
         public bool InGrabRange { get; set; }
         public RendezvousFighting Plugin { get; }
 
         public bool IsInFight(string character)
         {
-            return Fighters.Any(x => x.Name.ToLower() == character.ToLower());
+            return TeamFighters.Any(x => x.Name.ToLower() == character.ToLower());
         }
 
-        public Fighter GetFighter(string character)
+        public TeamFighter GetFighter(string character)
         {
-            return Fighters.FirstOrDefault(x => x.Name.ToLower() == character.ToLower());
+            return TeamFighters.FirstOrDefault(x => x.Name.ToLower() == character.ToLower());
         }
 
-        public Fighter GetFighterTarget(string character)
+        public TeamFighter GetFighterTarget(string character)
         {
-            return Fighters.FirstOrDefault(x => x.Name.ToLower() != character.ToLower());
+            return TeamFighters.FirstOrDefault(x => x.Name.ToLower() != character.ToLower());
         }
 
         public bool IsActive { get; set; }
@@ -39,36 +39,40 @@ namespace RDVFSharp
         {
             Plugin = plugin;
             WindowController = new WindowController();
-            Fighters = new List<Fighter>();
+            TeamFighters = new List<TeamFighter>();
             Stage = PickStage();
             InGrabRange = false;
             DisplayGrabbed = true;
             IsActive = false;
         }
 
-        public void InitialSetup(Fighter firstFighter, Fighter secondFighter, Fighter thirdFighter, Fighter fourthFighter)
+        public void InitialSetup(TeamFighter firstTeamFighter, TeamFighter secondTeamFighter, TeamFighter thirdTeamFighter, TeamFighter fourthTeamFighter)
         {
-            Fighters.Clear();
-            Fighters.Add(firstFighter);
-            Fighters.Add(secondFighter);
+            TeamFighters.Clear();
+            TeamFighters.Add(firstTeamFighter);
+            TeamFighters.Add(secondTeamFighter);
+            TeamFighters.Add(thirdTeamFighter);
+            TeamFighters.Add(fourthTeamFighter);
 
             PickInitialActor();
             WindowController.Hit.Add("Game started!");
             WindowController.Hit.Add("FIGHTING STAGE: " + Stage + " - " + GetActor().Name + " goes first!");
-            OutputFighterStatus(); // Creates the fighter status blocks (HP/Mana/Stamina)
-            OutputFighterStats(); // Creates the fighter stat blocks (STR/DEX/END/INT/WIL)
+            OutputTeamFighterstatus(); // Creates the fighter status blocks (HP/Mana/Stamina)
+            OutputTeamFighterstats(); // Creates the fighter stat blocks (STR/DEX/END/INT/WIL)
             WindowController.Info.Add("[url=http://www.f-list.net/c/rendezvous%20fight/]Visit this page for game information[/url]");
             IsActive = true;
             WindowController.UpdateOutput(this);
         }
 
-        public BaseFight EndFight(Fighter victor, Fighter loser)
+        public BaseTeamFight EndFight(TeamFighter victor1, TeamFighter victor2, TeamFighter loser1, TeamFighter loser2)
         {
-            var fightResult = new BaseFight()
+            var fightResult = new BaseTeamFight()
             {
                 Room = Plugin.Channel,
-                WinnerId = victor.Name,
-                LoserId = loser.Name,
+                Winner1Id = victor1.Name,
+                Winner2Id = victor2.Name,
+                Loser1Id = loser1.Name,
+                Loser2Id = loser2.Name,
                 FinishDate = DateTime.UtcNow
             };
 
@@ -129,8 +133,8 @@ namespace RDVFSharp
             if (roll == 20) WindowController.Info.Add("\n" + "[eicon]d20crit[/eicon]" + "\n");//Test to see if this works. Might add more graphics in the future.
 
             TurnUpKeep(); //End of turn upkeep (Stamina regen, check for being stunned/knocked out, etc.)
-            OutputFighterStatus(); // Creates the fighter status blocks (HP/Mana/Stamina)
-                                   //Battlefield.outputFighterStats();
+            OutputTeamFighterstatus(); // Creates the fighter status blocks (HP/Mana/Stamina)
+                                   //Battlefield.outputTeamFighterstats();
             WindowController.UpdateOutput(this); //Tells the window controller to format and dump all the queued up messages to the results screen.
         }
 
@@ -138,7 +142,7 @@ namespace RDVFSharp
         //{
         //    try
         //    {
-        //        Fighters.Add(new Fighter(this, settings)); //TODO
+        //        TeamFighters.Add(new Fighter(this, settings)); //TODO
         //    }
         //    catch (Exception ex)
         //    {
@@ -148,51 +152,51 @@ namespace RDVFSharp
         //    return true;
         //}
 
-        public void ClearFighters()
+        public void ClearTeamFighters()
         {
-            Fighters.Clear();
+            TeamFighters.Clear();
         }
 
-        public Fighter GetActor()
+        public TeamFighter GetActor()
         {
-            return Fighters[currentFighter];
+            return TeamFighters[currentTeamFighter];
         }
 
-        public Fighter GetTarget()
+        public TeamFighter GetTarget()
         {
-            return Fighters[1 - currentFighter];
+            return TeamFighters[1 - currentTeamFighter];
         }
 
-        public void OutputFighterStatus()
+        public void OutputTeamFighterstatus()
         {
-            for (int i = 0; i < Fighters.Count; i++)
+            for (int i = 0; i < TeamFighters.Count; i++)
             {
-                WindowController.Status.Add(Fighters[i].GetStatus());
+                WindowController.Status.Add(TeamFighters[i].GetStatus());
             }
         }
 
-        public void OutputFighterStats()
+        public void OutputTeamFighterstats()
         {
-            for (int i = 0; i < Fighters.Count; i++)
+            for (int i = 0; i < TeamFighters.Count; i++)
             {
-                WindowController.Status.Add(Fighters[i].GetStatBlock());
+                WindowController.Status.Add(TeamFighters[i].GetStatBlock());
             }
         }
 
         public void NextFighter()
         {
-            currentFighter = (currentFighter == Fighters.Count - 1) ? 0 : currentFighter + 1;
+            currentTeamFighter = (currentTeamFighter == TeamFighters.Count - 1) ? 0 : currentTeamFighter + 1;
 
-            if (Fighters[currentFighter].IsStunned)
+            if (TeamFighters[currentTeamFighter].IsStunned)
             {
-                Fighters[currentFighter].IsStunned = false;
+                TeamFighters[currentTeamFighter].IsStunned = false;
                 NextFighter();
             }
         }
 
         public void PickInitialActor()
         {
-            currentFighter = Utils.GetRandomNumber(0, Fighters.Count - 1);
+            currentTeamFighter = Utils.GetRandomNumber(0, TeamFighters.Count - 1);
         }
 
         public string PickStage()
@@ -244,12 +248,12 @@ namespace RDVFSharp
 
         public void TurnUpKeep()
         {
-            for (var i = 0; i < Fighters.Count; i++)
+            for (var i = 0; i < TeamFighters.Count; i++)
             {
-                Fighters[i].UpdateCondition();
+                TeamFighters[i].UpdateCondition();
             }
 
-            Fighters[currentFighter].Regen();
+            TeamFighters[currentTeamFighter].Regen();
             NextFighter();
         }
     }
