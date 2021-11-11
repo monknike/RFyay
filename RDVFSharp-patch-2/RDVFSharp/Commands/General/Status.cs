@@ -10,7 +10,12 @@ namespace RDVFSharp.Commands
 
         public override void ExecuteCommand(string character, IEnumerable<string> args, string channel)
         {
-            if (Plugin.CurrentBattlefield.IsActive)
+            if (Plugin.CurrentTeamBattlefield.IsActive)
+            {
+                Plugin.FChatClient.SendPrivateMessage(Plugin.CurrentTeamBattlefield.WindowController.LastMessageSent, character);
+            }
+
+            else if (Plugin.CurrentBattlefield.IsActive)
             {
                 Plugin.FChatClient.SendPrivateMessage(Plugin.CurrentBattlefield.WindowController.LastMessageSent, character);
             }

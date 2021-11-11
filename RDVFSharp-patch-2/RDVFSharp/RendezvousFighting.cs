@@ -31,10 +31,11 @@ namespace RDVFSharp
         }
         public ServiceProvider ServiceProvider { get; set; }
 
-        public RendezvousFighting(ServiceProvider serviceProvider, List<string> channels, bool debug = false, Battlefield currentBattlefield = null) : base(channels, debug)
+        public RendezvousFighting(ServiceProvider serviceProvider, List<string> channels, bool debug = false, Battlefield currentBattlefield = null, TeamBattlefield currentTeamBattlefield = null) : base(channels, debug)
         {
             ServiceProvider = serviceProvider;
             ResetFight(currentBattlefield);
+            ResetTeamFight(currentTeamBattlefield);
             CurrentTeamBattlefield = new TeamBattlefield(this);
         }
 
@@ -51,6 +52,23 @@ namespace RDVFSharp
             
             FirstFighter = null;
             SecondFighter = null;
+        }
+
+        public void ResetTeamFight(TeamBattlefield currentTeamBattlefield = null)
+        {
+            if (currentTeamBattlefield != null)
+            {
+                CurrentTeamBattlefield = currentTeamBattlefield;
+            }
+            else
+            {
+                CurrentTeamBattlefield = new TeamBattlefield(this);
+            }
+
+            FirstTeamFighter = null;
+            SecondTeamFighter = null;
+            ThirdTeamFighter = null;
+            FourthTeamFighter = null;
         }
     }
 }

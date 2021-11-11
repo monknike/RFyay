@@ -83,7 +83,7 @@ namespace RDVFSharp
             }
             
 
-            Plugin.ResetFight();
+            Plugin.ResetTeamFight();
 
             return fightResult;
         }
