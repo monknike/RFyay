@@ -7,13 +7,13 @@ using System.Reflection;
 
 namespace RDVFSharp.Commands
 {
-    public class DebugFighter : BaseCommand<RendezvousFighting>
+    public class Target : BaseCommand<RendezvousFighting>
     {
         public override string Description => "Sets a property to a certain value for a fighter in an ongoing fight.";
 
         public override void ExecuteCommand(string character, IEnumerable<string> args, string channel)
         {
-            if (Plugin.FChatClient.IsUserAdmin(character, channel) && Plugin.CurrentBattlefield.IsActive)
+            if (Plugin.CurrentTeamBattlefield.IsAbleToAttack(character))
             {
                 if(args.Count() < 3)
                 {
