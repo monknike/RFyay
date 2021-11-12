@@ -1584,7 +1584,6 @@ namespace RDVFSharp.Entities
             if (roll <= attackTable.miss)
             {   //Miss-- no effect.
                 TeamBattlefield.WindowController.Hit.Add(" FAILED!");
-                if (attacker.IsRestrained) attacker.IsEscaping += 4;//If we fail to escape, it'll be easier next time.
                 return false; //Failed attack, if we ever need to check that.
             }
 
@@ -1710,6 +1709,74 @@ namespace RDVFSharp.Entities
                 TeamBattlefield.InGrabRange = false;
                 TeamBattlefield.WindowController.Hint.Add(attacker.Name + " managed to put some distance between them and " + target.Name + " and is now out of grabbing range.");
             }
+
+            return true; //Successful attack, if we ever need to check that.
+        }
+
+        public bool ActionTarget(int roll)
+        {
+            var attacker = this;
+            var target = TeamBattlefield.GetTarget();
+            var requiredMana = 0;
+            var difficulty = 7; //Base difficulty, rolls greater than this amount will hit.
+
+            //If opponent fumbled on their previous action they should become stunned.
+
+            if (attacker.IsRestrained) difficulty += (4); //When grappled, up the difficulty based on the relative strength of the combatants.
+
+            if (attacker.IsAggressive > 0)
+            {//Apply attack bonus from move/teleport then reset it.
+                difficulty -= attacker.IsAggressive;
+                attacker.IsAggressive = 0;
+            }
+
+            if (attacker.IsGuarding > 0)
+            {//Apply attack bonus from move/teleport then reset it.
+                attacker.IsGuarding = 0;
+            }
+
+            if (attacker.Mana < requiredMana)
+            {   //Not enough stamina-- reduced effect
+                difficulty += (int)Math.Ceiling((double)((requiredMana - attacker.Mana) / requiredMana) * (20 - difficulty)); // Too tired? You're going to fail.
+                TeamBattlefield.WindowController.Hint.Add(attacker.Name + " didn't have enough Mana and took a penalty to the attempt.");
+            }
+
+
+            var attackTable = attacker.BuildActionTable(difficulty, 0, 0, target.Mana, target.ManaCap);
+            //If target can dodge the atatcker has to roll higher than the dodge value. Otherwise they need to roll higher than the miss value. We display the relevant value in the output.
+            TeamBattlefield.WindowController.Info.Add("Dice Roll Required: " + (attackTable.miss + 1));
+
+            var tempGrappleFlag = true;
+            if (attacker.IsGrappling(target))
+            { //If you're grappling someone they are freed, regardless of the outcome.
+                TeamBattlefield.WindowController.Hint.Add(attacker.Name + " used ESCAPE. " + target.Name + " is no longer being grappled. ");
+                target.RemoveGrappler(attacker);
+                tempGrappleFlag = false;
+            }
+
+            if (roll <= attackTable.miss)
+            {   //Miss-- no effect.
+                TeamBattlefield.WindowController.Hit.Add(" FAILED!");
+                return false; //Failed attack, if we ever need to check that.
+            }
+
+            if (roll >= attackTable.crit)
+            { //Critical Hit-- increased damage/effect, typically 3x damage if there are no other bonuses.
+                TeamBattlefield.WindowController.Hit.Add(" CRITICAL SUCCESS! ");
+                TeamBattlefield.WindowController.Hint.Add(attacker.Name + " can perform another action!");
+                // The only way the target can be stunned is if we set it to stunned with the action we're processing right now.
+                // That in turn is only possible if target had fumbled. So we restore the fumbled status, but keep the stun.
+                // That way we properly get a third action.
+                if (target.IsStunned) target.Fumbled = true;
+                target.IsStunned = true;
+                if (target.IsDisoriented > 0) target.IsDisoriented += 2;
+                if (target.IsExposed > 0) target.IsExposed += 2;
+            }
+
+            //The total mobility bonus generated. This will be split bewteen attack and defense.
+            var totalBonus = Utils.RollDice(new List<int>() { 5, 5 }) - 1 + attacker.Spellpower;
+
+            
 
             return true; //Successful attack, if we ever need to check that.
         }
