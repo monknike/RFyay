@@ -167,6 +167,9 @@ namespace RDVFSharp
             return TeamFighters[3 - currentTeamFighter];
         }
 
+        
+
+
         public void OutputTeamFighterstatus()
         {
             for (int i = 0; i < TeamFighters.Count; i++)
