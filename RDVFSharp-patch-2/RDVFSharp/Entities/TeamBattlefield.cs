@@ -195,9 +195,15 @@ namespace RDVFSharp
             else
              currentTeamFighter = 0; 
 
-            if (TeamFighters[currentTeamFighter].IsStunned)
+            if (TeamFighters[currentTeamFighter].IsDazed)
             {
-                TeamFighters[currentTeamFighter].IsStunned = false;
+                TeamFighters[currentTeamFighter].IsDazed = false;
+                NextFighter();
+            }
+
+            if (TeamFighters[currentTeamFighter].IsStunned > 1)
+            {
+                TeamFighters[currentTeamFighter].IsStunned -= 1;
                 NextFighter();
             }
         }

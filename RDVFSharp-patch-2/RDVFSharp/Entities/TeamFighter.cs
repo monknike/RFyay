@@ -73,7 +73,8 @@ namespace RDVFSharp.Entities
         public bool IsDead { get; private set; }
         public int CurseUsed { get; set; }
         public bool IsRestrained { get; set; }
-        public bool IsStunned { get; set; }
+        public bool IsDazed { get; set; }
+        public int IsStunned { get; set; }
         public int IsDisoriented { get; set; }
         public List<string> IsGrappledBy { get; set; }
         public int IsFocused { get; set; }
@@ -136,7 +137,7 @@ namespace RDVFSharp.Entities
             IsDead = false;
             CurseUsed = 0;
             IsRestrained = false;
-            IsStunned = false;
+            IsDazed = false;
             IsDisoriented = 0;
             IsGrappledBy = new List<string>();
             IsFocused = 0;
@@ -255,7 +256,7 @@ namespace RDVFSharp.Entities
             }
             else
             {
-                IsStunned = true;
+                IsDazed = true;
             }
         }
 
@@ -403,7 +404,7 @@ namespace RDVFSharp.Entities
             //If opponent fumbled on their previous action they should become stunned.
             if (target.Fumbled)
             {
-                target.IsStunned = true;
+                target.IsDazed = true;
                 target.Fumbled = false;
             }
 
@@ -496,7 +497,7 @@ namespace RDVFSharp.Entities
             //If opponent fumbled on their previous action they should become stunned.
             if (target.Fumbled)
             {
-                target.IsStunned = true;
+                target.IsDazed = true;
                 target.Fumbled = false;
             }
 
@@ -623,7 +624,7 @@ namespace RDVFSharp.Entities
             // We put it down here for Grab so it doesn't interfere with the stun from a crit on moving into range.
             if (target.Fumbled)
             {
-                target.IsStunned = true;
+                target.IsDazed = true;
                 target.Fumbled = false;
             }
 
@@ -652,7 +653,7 @@ namespace RDVFSharp.Entities
             target.IsGrappledBy.Add(attacker.Name);
 
             //If we managed to grab without being in grab range, we are certainly in grabe range afterwards.
-            if (!TeamBattlefield.InGrabRange) TeamBattlefield.InGrabRange = true;
+
 
             damage = Math.Max(damage, 1);
             target.HitHp(damage);
@@ -717,7 +718,7 @@ namespace RDVFSharp.Entities
                 //If opponent fumbled on their previous action they should become stunned. Tackle is a special case because it stuns anyway if it hits, so we only do this on a miss.
                 if (target.Fumbled)
                 {
-                    target.IsStunned = true;
+                    target.IsDazed = true;
                     target.Fumbled = false;
                 }
                 return false; //Failed attack, if we ever need to check that.
@@ -729,14 +730,13 @@ namespace RDVFSharp.Entities
                 damage += 10;
             }
 
-            TeamBattlefield.InGrabRange = true;//A regular tackle will put you close enough to your opponent to initiate a grab.
             TeamBattlefield.WindowController.Hit.Add(attacker.Name + " TACKLED " + target.Name + ". " + attacker.Name + " can take another action while their opponent is stunned!");
 
             //Deal all the actual damage/effects here.
 
             damage = Math.Max(damage, 0);
             if (damage > 0) target.HitHp(damage); //This is to prevent the game displayin that the attacker did 0 damage, which is the normal case.
-            target.IsStunned = true;
+            target.IsStunned = 2;
             return true; //Successful attack, if we ever need to check that.
         }
 
@@ -755,7 +755,7 @@ namespace RDVFSharp.Entities
             //If opponent fumbled on their previous action they should become stunned.
             if (target.Fumbled)
             {
-                target.IsStunned = true;
+                target.IsDazed = true;
                 target.Fumbled = false;
             }
 
@@ -852,7 +852,7 @@ namespace RDVFSharp.Entities
             //If opponent fumbled on their previous action they should become stunned.
             if (target.Fumbled)
             {
-                target.IsStunned = true;
+                target.IsDazed = true;
                 target.Fumbled = false;
             }
 
@@ -949,7 +949,7 @@ namespace RDVFSharp.Entities
             //If opponent fumbled on their previous action they should become stunned.
             if (target.Fumbled)
             {
-                target.IsStunned = true;
+                target.IsDazed = true;
                 target.Fumbled = false;
             }
 
@@ -1045,7 +1045,7 @@ namespace RDVFSharp.Entities
             //If opponent fumbled on their previous action they should become stunned.
             if (target.Fumbled)
             {
-                target.IsStunned = true;
+                target.IsDazed = true;
                 target.Fumbled = false;
             }
 
@@ -1144,7 +1144,7 @@ namespace RDVFSharp.Entities
             //If opponent fumbled on their previous action they should become stunned.
             if (target.Fumbled)
             {
-                target.IsStunned = true;
+                target.IsDazed = true;
                 target.Fumbled = false;
             }
 
@@ -1261,15 +1261,15 @@ namespace RDVFSharp.Entities
             {
                 TeamBattlefield.WindowController.Hit.Add("CRITICAL SUCCESS! ");
                 TeamBattlefield.WindowController.Hint.Add(attacker.Name + " can perform another action!");
-                target.IsStunned = true;
+                target.IsDazed = true;
                 if (target.IsDisoriented > 0) target.IsDisoriented += 2;
                 if (target.IsExposed > 0) target.IsExposed += 2;
             }
 
             //If opponent fumbled on their previous action they should become stunned, unless they're already stunned by us rolling a 20.
-            if (target.Fumbled & !target.IsStunned)
+            if (target.Fumbled & !target.IsDazed)
             {
-                target.IsStunned = true;
+                target.IsDazed = true;
                 target.Fumbled = false;
             }
 
@@ -1318,15 +1318,15 @@ namespace RDVFSharp.Entities
             {
                 TeamBattlefield.WindowController.Hit.Add("CRITICAL SUCCESS! ");
                 TeamBattlefield.WindowController.Hint.Add(attacker.Name + " can perform another action!");
-                target.IsStunned = true;
+                target.IsDazed = true;
                 if (target.IsDisoriented > 0) target.IsDisoriented += 2;
                 if (target.IsExposed > 0) target.IsExposed += 2;
             }
 
             //If opponent fumbled on their previous action they should become stunned, unless they're already stunned by us rolling a 20.
-            if (target.Fumbled & !target.IsStunned)
+            if (target.Fumbled & !target.IsDazed)
             {
-                target.IsStunned = true;
+                target.IsDazed = true;
                 target.Fumbled = false;
             }
 
@@ -1369,15 +1369,15 @@ namespace RDVFSharp.Entities
             {
                 TeamBattlefield.WindowController.Hit.Add("CRITICAL SUCCESS! ");
                 TeamBattlefield.WindowController.Hint.Add(attacker.Name + " can perform another action!");
-                target.IsStunned = true;
+                target.IsDazed = true;
                 if (target.IsDisoriented > 0) target.IsDisoriented += 2;
                 if (target.IsExposed > 0) target.IsExposed += 2;
             }
 
             //If opponent fumbled on their previous action they should become stunned, unless they're already stunned by us rolling a 20.
-            if (target.Fumbled & !target.IsStunned)
+            if (target.Fumbled & !target.IsDazed)
             {
-                target.IsStunned = true;
+                target.IsDazed = true;
                 target.Fumbled = false;
             }
 
@@ -1444,7 +1444,7 @@ namespace RDVFSharp.Entities
             //If opponent fumbled on their previous action they should become stunned.
             if (target.Fumbled)
             {
-                target.IsStunned = true;
+                target.IsDazed = true;
                 target.Fumbled = false;
             }
 
@@ -1502,8 +1502,8 @@ namespace RDVFSharp.Entities
                 // The only way the target can be stunned is if we set it to stunned with the action we're processing right now.
                 // That in turn is only possible if target had fumbled. So we restore the fumbled status, but keep the stun.
                 // That way we properly get a third action.
-                if (target.IsStunned) target.Fumbled = true;
-                target.IsStunned = true;
+                if (target.IsDazed) target.Fumbled = true;
+                target.IsDazed = true;
                 if (target.IsDisoriented > 0) target.IsDisoriented += 2;
                 if (target.IsExposed > 0) target.IsExposed += 2;
             }
@@ -1543,7 +1543,7 @@ namespace RDVFSharp.Entities
             //If opponent fumbled on their previous action they should become stunned.
             if (target.Fumbled)
             {
-                target.IsStunned = true;
+                target.IsDazed = true;
                 target.Fumbled = false;
             }
 
@@ -1594,8 +1594,8 @@ namespace RDVFSharp.Entities
                 // The only way the target can be stunned is if we set it to stunned with the action we're processing right now.
                 // That in turn is only possible if target had fumbled. So we restore the fumbled status, but keep the stun.
                 // That way we properly get a third action.
-                if (target.IsStunned) target.Fumbled = true;
-                target.IsStunned = true;
+                if (target.IsDazed) target.Fumbled = true;
+                target.IsDazed = true;
                 if (target.IsDisoriented > 0) target.IsDisoriented += 2;
                 if (target.IsExposed > 0) target.IsExposed += 2;
             }
@@ -1623,7 +1623,7 @@ namespace RDVFSharp.Entities
             //If opponent fumbled on their previous action they should become stunned.
             if (target.Fumbled)
             {
-                target.IsStunned = true;
+                target.IsDazed = true;
                 target.Fumbled = false;
             }
 
@@ -1681,8 +1681,8 @@ namespace RDVFSharp.Entities
                 // The only way the target can be stunned is if we set it to stunned with the action we're processing right now.
                 // That in turn is only possible if target had fumbled. So we restore the fumbled status, but keep the stun.
                 // That way we properly get a third action.
-                if (target.IsStunned) target.Fumbled = true;
-                target.IsStunned = true;
+                if (target.IsDazed) target.Fumbled = true;
+                target.IsDazed = true;
                 if (target.IsDisoriented > 0) target.IsDisoriented += 2;
                 if (target.IsExposed > 0) target.IsExposed += 2;
             }
@@ -1767,8 +1767,8 @@ namespace RDVFSharp.Entities
                 // The only way the target can be stunned is if we set it to stunned with the action we're processing right now.
                 // That in turn is only possible if target had fumbled. So we restore the fumbled status, but keep the stun.
                 // That way we properly get a third action.
-                if (target.IsStunned) target.Fumbled = true;
-                target.IsStunned = true;
+                if (target.IsDazed) target.Fumbled = true;
+                target.IsDazed = true;
                 if (target.IsDisoriented > 0) target.IsDisoriented += 2;
                 if (target.IsExposed > 0) target.IsExposed += 2;
             }
