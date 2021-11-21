@@ -185,7 +185,15 @@ namespace RDVFSharp
 
         public void NextFighter()
         {
-            currentTeamFighter = (currentTeamFighter == TeamFighters.Count - 1) ? 0 : currentTeamFighter + 1;
+            
+            if
+                (currentTeamFighter < 2) currentTeamFighter += 2;
+
+            else if
+                (currentTeamFighter < 3) currentTeamFighter -= 1; 
+
+            else
+             currentTeamFighter = 0; 
 
             if (TeamFighters[currentTeamFighter].IsStunned)
             {

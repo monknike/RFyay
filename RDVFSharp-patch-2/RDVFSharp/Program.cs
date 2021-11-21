@@ -30,7 +30,7 @@ namespace RDVFSharp
             var botCharacterName = "RF Alpha"; //The character used to log in with
             var adminName = "Mayank";
             var channelToWatch = new List<string>() { "adh-210506410c3e2ab26607" }; //Your testing channel code, obtainable with /code in the chat
-            var bot = new FChatSharpLib.Bot(flistUsername, flistPassword, botCharacterName, adminName, true, 4000);
+            var bot = new FChatSharpLib.Bot(flistUsername, flistPassword, botCharacterName, adminName, true, 10000);
             bot.Connect();
 
             RDV = new RendezvousFighting(serviceProvider, channelToWatch, IsDebugging);
