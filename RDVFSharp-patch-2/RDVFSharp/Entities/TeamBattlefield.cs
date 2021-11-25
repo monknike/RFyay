@@ -10,10 +10,10 @@ namespace RDVFSharp
     public class TeamBattlefield
     {
         public List<TeamFighter> TeamFighters { get; set; }
+        public TeamFighter Fighter { get; set; }
         public string Stage { get; set; }
         public bool DisplayGrabbed { get; set; }
         public WindowController WindowController { get; set; }
-
         private int currentTeamFighter = 0;
         public bool InGrabRange { get; set; }
         public RendezvousFighting Plugin { get; }
@@ -32,6 +32,7 @@ namespace RDVFSharp
         {
             return TeamFighters.FirstOrDefault(x => x.Name.ToLower() != character.ToLower());
         }
+
 
         public bool IsActive { get; set; }
 
@@ -164,7 +165,17 @@ namespace RDVFSharp
 
         public TeamFighter GetTarget()
         {
-            return TeamFighters[3 - currentTeamFighter];
+            if (currentTeamFighter == 0)
+                return TeamFighters[3 - currentTeamFighter - Fighter.SetTarget];
+
+            else if (currentTeamFighter == 1)
+                return TeamFighters[3 - currentTeamFighter + Fighter.SetTarget];
+
+            else if (currentTeamFighter == 2)
+                return TeamFighters[3 - currentTeamFighter - Fighter.SetTarget];
+
+            else
+                return TeamFighters[3 - currentTeamFighter + Fighter.SetTarget];
         }
 
 

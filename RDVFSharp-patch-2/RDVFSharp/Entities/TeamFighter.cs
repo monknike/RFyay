@@ -93,6 +93,8 @@ namespace RDVFSharp.Entities
         public int LastKnownHP { get; set; }
         public int LastKnownMana { get; set; }
         public int LastKnownStamina { get; set; }
+        public int SetTarget { get; set; }
+
 
         public TeamFighter(BaseFighter baseFighter, TeamBattlefield Teambattlefield)
         {
@@ -378,10 +380,11 @@ namespace RDVFSharp.Entities
             }
         }
 
-        public (int miss, int crit) BuildActionTable(int difficulty, int targetDex, int attackerDex, int targetEnergy, int targetEnergyMax)
+        public (int miss, int crit, int targethit) BuildActionTable(int difficulty, int targetDex, int attackerDex, int targetEnergy, int targetEnergyMax)
         {
             var miss = 0;
             var crit = 0;
+            var targethit = 0;
             // Modify difficulty by half the difference in DEX rounded down. Each odd point more gives you +1 attack and each even point more gives you +1 defence.
             miss = difficulty + (int)Math.Floor((double)(targetDex - attackerDex) / 2);
             //Opponents who are low on energy are easier to hit. Will use Stamina for physical and Mana for magical attacks.
@@ -389,7 +392,8 @@ namespace RDVFSharp.Entities
             miss = Math.Max(1, miss);//A roll of 1 is always a miss.
             miss = Math.Min(miss, 19); //A roll of 20 is always a hit, so maximum difficulty is 19.
             crit = 20;
-            return (miss, crit);
+            targethit = 8;
+            return (miss, crit, targethit);
         }
 
         public bool ActionLight(int roll)
@@ -1763,24 +1767,10 @@ namespace RDVFSharp.Entities
                 attacker.IsGuarding = 0;
             }
 
-            if (attacker.Mana < requiredMana)
-            {   //Not enough stamina-- reduced effect
-                difficulty += (int)Math.Ceiling((double)((requiredMana - attacker.Mana) / requiredMana) * (20 - difficulty)); // Too tired? You're going to fail.
-                TeamBattlefield.WindowController.Hint.Add(attacker.Name + " didn't have enough Mana and took a penalty to the attempt.");
-            }
-
-
             var attackTable = attacker.BuildActionTable(difficulty, 0, 0, target.Mana, target.ManaCap);
             //If target can dodge the atatcker has to roll higher than the dodge value. Otherwise they need to roll higher than the miss value. We display the relevant value in the output.
             TeamBattlefield.WindowController.Info.Add("Dice Roll Required: " + (attackTable.miss + 1));
 
-            var tempGrappleFlag = true;
-            if (attacker.IsGrappling(target))
-            { //If you're grappling someone they are freed, regardless of the outcome.
-                TeamBattlefield.WindowController.Hint.Add(attacker.Name + " used ESCAPE. " + target.Name + " is no longer being grappled. ");
-                target.RemoveGrappler(attacker);
-                tempGrappleFlag = false;
-            }
 
             if (roll <= attackTable.miss)
             {   //Miss-- no effect.
@@ -1797,9 +1787,14 @@ namespace RDVFSharp.Entities
                 // That way we properly get a third action.
                 if (target.IsDazed) target.Fumbled = true;
                 target.IsDazed = true;
+            }
 
-                if (target.IsDisoriented > 0) target.IsDisoriented += 2;
-                if (target.IsExposed > 0) target.IsExposed += 2;
+            if (roll >= attackTable.targethit)
+            {
+                if (attacker.SetTarget == 1)
+                    attacker.SetTarget -=1;
+                if (attacker.SetTarget == 0)
+                    attacker.SetTarget += 1;
             }
 
             //The total mobility bonus generated. This will be split bewteen attack and defense.
