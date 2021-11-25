@@ -666,6 +666,8 @@ namespace RDVFSharp.Entities
         {
             var attacker = this;
             var target = TeamBattlefield.GetTarget();
+            var daze1 = TeamBattlefield.GetPartner();
+            var daze2 = TeamBattlefield.GetOther();
             var damage = Utils.RollDice(new List<int>() { 5, 5 }) - 1 + attacker.Strength;
             damage /= 2;
             var requiredStam = 10;
@@ -737,6 +739,8 @@ namespace RDVFSharp.Entities
             damage = Math.Max(damage, 0);
             if (damage > 0) target.HitHp(damage); //This is to prevent the game displayin that the attacker did 0 damage, which is the normal case.
             target.IsStunned = 2;
+            daze1.IsDazed = true;
+            daze2.IsDazed = true;
             return true; //Successful attack, if we ever need to check that.
         }
 
@@ -1233,6 +1237,8 @@ namespace RDVFSharp.Entities
         {
             var attacker = this;
             var target = TeamBattlefield.GetTarget();
+            var daze1 = TeamBattlefield.GetPartner();
+            var daze2 = TeamBattlefield.GetOther();
             var difficulty = 1; //Base difficulty, rolls greater than this amount will succeed.
 
             //if (attacker.IsDisoriented) difficulty += 2; //Up the difficulty if you are dizzy.
@@ -1262,6 +1268,8 @@ namespace RDVFSharp.Entities
                 TeamBattlefield.WindowController.Hit.Add("CRITICAL SUCCESS! ");
                 TeamBattlefield.WindowController.Hint.Add(attacker.Name + " can perform another action!");
                 target.IsDazed = true;
+                daze1.IsDazed = true;
+                daze2.IsDazed= true;
                 if (target.IsDisoriented > 0) target.IsDisoriented += 2;
                 if (target.IsExposed > 0) target.IsExposed += 2;
             }
@@ -1289,6 +1297,8 @@ namespace RDVFSharp.Entities
         {
             var attacker = this;
             var target = TeamBattlefield.GetTarget();
+            var daze1 = TeamBattlefield.GetPartner();
+            var daze2 = TeamBattlefield.GetOther();
             var difficulty = 1; //Base difficulty, rolls greater than this amount will succeed.
 
             //if (attacker.IsDisoriented) difficulty += 2; //Up the difficulty if you are dizzy.
@@ -1319,6 +1329,8 @@ namespace RDVFSharp.Entities
                 TeamBattlefield.WindowController.Hit.Add("CRITICAL SUCCESS! ");
                 TeamBattlefield.WindowController.Hint.Add(attacker.Name + " can perform another action!");
                 target.IsDazed = true;
+                daze1.IsDazed = true;
+                daze2.IsDazed= true;
                 if (target.IsDisoriented > 0) target.IsDisoriented += 2;
                 if (target.IsExposed > 0) target.IsExposed += 2;
             }
@@ -1340,6 +1352,8 @@ namespace RDVFSharp.Entities
         {
             var attacker = this;
             var target = TeamBattlefield.GetTarget();
+            var daze1 = TeamBattlefield.GetPartner();
+            var daze2 = TeamBattlefield.GetOther();
             var difficulty = 1; //Base difficulty, rolls greater than this amount will succeed.
 
             //if (attacker.IsDisoriented) difficulty += 2; //Up the difficulty if you are dizzy.
@@ -1370,6 +1384,8 @@ namespace RDVFSharp.Entities
                 TeamBattlefield.WindowController.Hit.Add("CRITICAL SUCCESS! ");
                 TeamBattlefield.WindowController.Hint.Add(attacker.Name + " can perform another action!");
                 target.IsDazed = true;
+                daze1.IsDazed = true;
+                daze2.IsDazed = true;
                 if (target.IsDisoriented > 0) target.IsDisoriented += 2;
                 if (target.IsExposed > 0) target.IsExposed += 2;
             }
@@ -1438,6 +1454,8 @@ namespace RDVFSharp.Entities
         {
             var attacker = this;
             var target = TeamBattlefield.GetTarget();
+            var daze1 = TeamBattlefield.GetPartner();
+            var daze2 = TeamBattlefield.GetOther();
             var requiredStam = 5;
             var difficulty = 1; //Base difficulty, rolls greater than this amount will hit.
 
@@ -1504,6 +1522,8 @@ namespace RDVFSharp.Entities
                 // That way we properly get a third action.
                 if (target.IsDazed) target.Fumbled = true;
                 target.IsDazed = true;
+                daze1.IsDazed = true;
+                daze2.IsDazed = true;
                 if (target.IsDisoriented > 0) target.IsDisoriented += 2;
                 if (target.IsExposed > 0) target.IsExposed += 2;
             }
@@ -1537,6 +1557,8 @@ namespace RDVFSharp.Entities
         {
             var attacker = this;
             var target = TeamBattlefield.GetTarget();
+            var daze1 = TeamBattlefield.GetPartner();
+            var daze2 = TeamBattlefield.GetOther();
             var requiredStam = 0;
             var difficulty = 1; //Base difficulty, rolls greater than this amount will hit.
 
@@ -1596,6 +1618,8 @@ namespace RDVFSharp.Entities
                 // That way we properly get a third action.
                 if (target.IsDazed) target.Fumbled = true;
                 target.IsDazed = true;
+                daze1.IsDazed = true;
+                daze2.IsDazed = true;
                 if (target.IsDisoriented > 0) target.IsDisoriented += 2;
                 if (target.IsExposed > 0) target.IsExposed += 2;
             }
@@ -1617,6 +1641,8 @@ namespace RDVFSharp.Entities
         {
             var attacker = this;
             var target = TeamBattlefield.GetTarget();
+            var daze1 = TeamBattlefield.GetPartner();
+            var daze2 = TeamBattlefield.GetOther();
             var requiredMana = 5;
             var difficulty = 1; //Base difficulty, rolls greater than this amount will hit.
 
@@ -1683,6 +1709,8 @@ namespace RDVFSharp.Entities
                 // That way we properly get a third action.
                 if (target.IsDazed) target.Fumbled = true;
                 target.IsDazed = true;
+                daze1.IsDazed = true;
+                daze2.IsDazed = true;
                 if (target.IsDisoriented > 0) target.IsDisoriented += 2;
                 if (target.IsExposed > 0) target.IsExposed += 2;
             }
@@ -1769,6 +1797,7 @@ namespace RDVFSharp.Entities
                 // That way we properly get a third action.
                 if (target.IsDazed) target.Fumbled = true;
                 target.IsDazed = true;
+
                 if (target.IsDisoriented > 0) target.IsDisoriented += 2;
                 if (target.IsExposed > 0) target.IsExposed += 2;
             }
