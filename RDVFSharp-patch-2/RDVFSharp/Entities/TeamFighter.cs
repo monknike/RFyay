@@ -374,7 +374,7 @@ namespace RDVFSharp.Entities
                 TeamBattlefield.WindowController.Hit.Add("The fight is over! CLAIM YOUR SPOILS and VICTORY and FINISH YOUR OPPONENT!");
                 TeamBattlefield.WindowController.Special.Add("FATALITY SUGGESTION: " + this.PickFatality());
                 TeamBattlefield.WindowController.Special.Add("It is just a suggestion, you may not follow it if you don't want to.");
-                TeamBattlefield.EndFight(TeamBattlefield.GetActor(), TeamBattlefield.GetTarget(), TeamBattlefield.GetTarget(), TeamBattlefield.GetTarget());
+                TeamBattlefield.EndFight(TeamBattlefield.GetActor(), TeamBattlefield.GetPartner(), TeamBattlefield.GetTarget(), TeamBattlefield.GetOther());
             }
         }
 

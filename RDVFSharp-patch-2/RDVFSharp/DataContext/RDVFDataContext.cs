@@ -8,6 +8,7 @@ namespace RDVFSharp.DataContext
     {
         public DbSet<BaseFighter> Fighters { get; set; }
         public DbSet<BaseFight> Fights { get; set; }
+        public DbSet<BaseTeamFight> TeamFights { get; set; }
         public IConfigurationRoot Configuration { get; set; }
 
         public RDVFDataContext()
