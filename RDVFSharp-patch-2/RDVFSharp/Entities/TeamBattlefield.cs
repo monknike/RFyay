@@ -15,6 +15,7 @@ namespace RDVFSharp
         public bool DisplayGrabbed { get; set; }
         public WindowController WindowController { get; set; }
         private int currentTeamFighter = 0;
+        private int SetTarget = 0;
         public bool InGrabRange { get; set; }
         public RendezvousFighting Plugin { get; }
 
@@ -158,26 +159,34 @@ namespace RDVFSharp
             TeamFighters.Clear();
         }
 
-        public TeamFighter GetActor()
+        public void ChangeTarget()
         {
-            return TeamFighters[currentTeamFighter];
+            if (Fighter.SetTarget == 0) SetTarget = 0;
+            else SetTarget = 1;
+        
         }
+
 
         public TeamFighter GetTarget()
         {
             if (currentTeamFighter == 0)
-                return TeamFighters[3 - currentTeamFighter - Fighter.SetTarget];
+                return TeamFighters[3 - currentTeamFighter - SetTarget];
 
             else if (currentTeamFighter == 1)
-                return TeamFighters[3 - currentTeamFighter + Fighter.SetTarget];
+                return TeamFighters[3 - currentTeamFighter + SetTarget];
 
             else if (currentTeamFighter == 2)
-                return TeamFighters[3 - currentTeamFighter - Fighter.SetTarget];
+                return TeamFighters[3 - currentTeamFighter - SetTarget];
 
             else
-                return TeamFighters[3 - currentTeamFighter + Fighter.SetTarget];
+                return TeamFighters[3 - currentTeamFighter + SetTarget];
         }
 
+
+        public TeamFighter GetActor()
+        {
+            return TeamFighters[currentTeamFighter];
+        }
 
         public TeamFighter GetPartner()
         {

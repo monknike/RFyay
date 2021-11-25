@@ -148,6 +148,7 @@ namespace RDVFSharp.Entities
             IsEvading = 0;
             IsAggressive = 0;
             IsExposed = 0;
+            SetTarget = 0;
             Fumbled = false; //A status that gets set when you fumble, so that opponents next action can stun you.
             WantsToLeave = false;
         }
@@ -1749,7 +1750,8 @@ namespace RDVFSharp.Entities
         {
             var attacker = this;
             var target = TeamBattlefield.GetTarget();
-            var requiredMana = 0;
+            var daze1 = TeamBattlefield.GetPartner();
+            var daze2 = TeamBattlefield.GetOther();
             var difficulty = 7; //Base difficulty, rolls greater than this amount will hit.
 
             //If opponent fumbled on their previous action they should become stunned.
@@ -1787,6 +1789,8 @@ namespace RDVFSharp.Entities
                 // That way we properly get a third action.
                 if (target.IsDazed) target.Fumbled = true;
                 target.IsDazed = true;
+                daze1.IsDazed = true;
+                daze2.IsDazed = true;
             }
 
             if (roll >= attackTable.targethit)
