@@ -167,8 +167,34 @@ namespace RDVFSharp
             return TeamFighters[3 - currentTeamFighter];
         }
 
-        
 
+        public TeamFighter GetPartner()
+        {
+            if (currentTeamFighter == 0)
+                return TeamFighters[currentTeamFighter + 1];
+
+            else if (currentTeamFighter == 1)
+                return TeamFighters[currentTeamFighter - 1];
+
+            else if (currentTeamFighter == 2)
+                return TeamFighters[currentTeamFighter + 1];
+            else
+                return TeamFighters[currentTeamFighter - 1];
+        }
+
+        public TeamFighter GetOther()
+        {
+            if (GetTarget = 0)
+                return TeamFighters[currentTeamFighter + 1];
+
+            else if (GetTarget = 1)
+                return TeamFighters[currentTeamFighter - 1];
+
+            else if (GetTarget = 2)
+                return TeamFighters[currentTeamFighter + 1];
+            else
+                return TeamFighters[currentTeamFighter - 1];
+        }
 
         public void OutputTeamFighterstatus()
         {
