@@ -204,16 +204,29 @@ namespace RDVFSharp
 
         public TeamFighter GetOther()
         {
-            if (3 - currentTeamFighter == 0)
-                return TeamFighters[currentTeamFighter - 2];
-
-            else if (3 - currentTeamFighter == 1)
-                return TeamFighters[currentTeamFighter - 2];
-
-            else if (3 - currentTeamFighter == 2)
+            if (SetTarget == 0 && currentTeamFighter == 0)
                 return TeamFighters[currentTeamFighter + 2];
+
+            else if (SetTarget == 1 && currentTeamFighter == 0)
+                return TeamFighters[currentTeamFighter + 3];
+
+            else if (SetTarget == 0 && currentTeamFighter == 1)
+                return TeamFighters[currentTeamFighter + 2];
+
+            else if (SetTarget == 1 && currentTeamFighter == 1)
+                return TeamFighters[currentTeamFighter + 1];
+
+            else if (SetTarget == 0 && currentTeamFighter == 2)
+                return TeamFighters[currentTeamFighter - 2];
+
+            else if (SetTarget == 1 && currentTeamFighter == 2)
+                return TeamFighters[currentTeamFighter - 1];
+
+            else if (SetTarget == 0 && currentTeamFighter == 3)
+                return TeamFighters[currentTeamFighter - 2];
+
             else
-                return TeamFighters[currentTeamFighter + 2];
+                return TeamFighters[currentTeamFighter - 3];
         }
 
         public void OutputTeamFighterstatus()
