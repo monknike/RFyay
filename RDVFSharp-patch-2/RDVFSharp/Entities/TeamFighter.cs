@@ -406,7 +406,7 @@ namespace RDVFSharp.Entities
             miss = Math.Max(1, miss);//A roll of 1 is always a miss.
             miss = Math.Min(miss, 19); //A roll of 20 is always a hit, so maximum difficulty is 19.
             crit = 20;
-            targethit = 8;
+            targethit = 7;
             return (miss, crit, targethit);
         }
 
@@ -1765,7 +1765,7 @@ namespace RDVFSharp.Entities
             var target = TeamBattlefield.GetTarget();
             var daze1 = TeamBattlefield.GetPartner();
             var daze2 = TeamBattlefield.GetOther();
-            var difficulty = 7; //Base difficulty, rolls greater than this amount will hit.
+            var difficulty = 6; //Base difficulty, rolls greater than this amount will hit.
 
             //If opponent fumbled on their previous action they should become stunned.
 
