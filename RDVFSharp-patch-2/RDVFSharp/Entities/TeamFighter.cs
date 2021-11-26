@@ -329,6 +329,10 @@ namespace RDVFSharp.Entities
 
         public void UpdateCondition()
         {
+            var target = TeamBattlefield.GetTarget();
+            var partner = TeamBattlefield.GetPartner();
+            var other = TeamBattlefield.GetOther();
+
             if (IsGrappledBy.Count != 0 && IsRestrained == false) IsRestrained = true;
             if (IsGrappledBy.Count == 0 && IsRestrained == true) IsRestrained = false;
 
@@ -374,11 +378,20 @@ namespace RDVFSharp.Entities
             if (HP <= DeathValue && IsDead == false)
             {
                 IsDead = true;
+                IsStunned = 100000;
+                TeamBattlefield.WindowController.Hit.Add(target.Name + "has been taken out! Eliminate their partner to win the match!");
+                
+            }
+
+            if (target.IsDead == true & other.IsDead == true)
+            {
                 TeamBattlefield.WindowController.Hit.Add("The fight is over! CLAIM YOUR SPOILS and VICTORY and FINISH YOUR OPPONENT!");
                 TeamBattlefield.WindowController.Special.Add("FATALITY SUGGESTION: " + this.PickFatality());
                 TeamBattlefield.WindowController.Special.Add("It is just a suggestion, you may not follow it if you don't want to.");
                 TeamBattlefield.EndFight(TeamBattlefield.GetActor(), TeamBattlefield.GetPartner(), TeamBattlefield.GetTarget(), TeamBattlefield.GetOther());
             }
+
+
         }
 
         public (int miss, int crit, int targethit) BuildActionTable(int difficulty, int targetDex, int attackerDex, int targetEnergy, int targetEnergyMax)
