@@ -217,7 +217,7 @@ namespace RDVFSharp
             "Locker Room",
             "Library",
             "Pirate Ship",
-            "Baazar",
+            "Bazaar",
             "Supermarket",
             "Night Club",
             "Docks",
