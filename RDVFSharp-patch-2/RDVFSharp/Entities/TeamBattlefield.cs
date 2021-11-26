@@ -59,6 +59,9 @@ namespace RDVFSharp
             PickInitialActor();
             WindowController.Hit.Add("Game started!");
             WindowController.Hit.Add("FIGHTING STAGE: " + Stage + " - " + GetActor().Name + " goes first!");
+            WindowController.Hit.Add("The initial target for " + GetActor().Name + " is " + GetTarget().Name + ", and vice versa.");
+            WindowController.Hit.Add("The initial target for " + GetPartner().Name + " is " + GetOther().Name + ", and vice versa.");
+            WindowController.Hit.Add("To change targets, use the !changetarget command");
             OutputTeamFighterstatus(); // Creates the fighter status blocks (HP/Mana/Stamina)
             OutputTeamFighterstats(); // Creates the fighter stat blocks (STR/DEX/END/INT/WIL)
             WindowController.Info.Add("[url=http://www.f-list.net/c/rendezvous%20fight/]Visit this page for game information[/url]");
@@ -161,9 +164,12 @@ namespace RDVFSharp
 
         public void ChangeTarget()
         {
-            if (Fighter.SetTarget == 0) SetTarget = 0;
-            else SetTarget = 1;
-        
+            if
+                (TeamFighters[currentTeamFighter].SetTarget == 1) SetTarget = 1;
+            else if
+                (TeamFighters[currentTeamFighter].SetTarget == 0) SetTarget = 0;
+            else
+                SetTarget = 0;
         }
 
 
@@ -330,6 +336,7 @@ namespace RDVFSharp
             }
 
             TeamFighters[currentTeamFighter].Regen();
+            ChangeTarget();
             NextFighter();
         }
     }

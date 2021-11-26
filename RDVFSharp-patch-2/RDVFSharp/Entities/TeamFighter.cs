@@ -1759,9 +1759,9 @@ namespace RDVFSharp.Entities
             return true; //Successful attack, if we ever need to check that.
         }
 
-        public bool ActionTarget(int roll)
+        public bool ActionChangeTarget(int roll)
         {
-            var attacker = this;
+            var attacker = TeamBattlefield.GetActor();
             var target = TeamBattlefield.GetTarget();
             var daze1 = TeamBattlefield.GetPartner();
             var daze2 = TeamBattlefield.GetOther();
@@ -1808,16 +1808,17 @@ namespace RDVFSharp.Entities
 
             if (roll >= attackTable.targethit)
             {
+
+                TeamBattlefield.WindowController.Hit.Add("Success! Your target has changed to " + daze2.Name);
                 if (attacker.SetTarget == 1)
                     attacker.SetTarget -=1;
                 if (attacker.SetTarget == 0)
                     attacker.SetTarget += 1;
+                
             }
 
-            //The total mobility bonus generated. This will be split bewteen attack and defense.
-            var totalBonus = Utils.RollDice(new List<int>() { 5, 5 }) - 1 + attacker.Spellpower;
-
             
+
 
             return true; //Successful attack, if we ever need to check that.
         }
