@@ -329,6 +329,7 @@ namespace RDVFSharp.Entities
 
         public void UpdateCondition()
         {
+            var attacker = TeamBattlefield.GetActor();
             var target = TeamBattlefield.GetTarget();
             var partner = TeamBattlefield.GetPartner();
             var other = TeamBattlefield.GetOther();
@@ -379,7 +380,7 @@ namespace RDVFSharp.Entities
             {
                 IsDead = true;
                 IsStunned = 100000;
-                TeamBattlefield.WindowController.Hit.Add(target.Name + "has been taken out! Eliminate their partner to win the match!");
+                TeamBattlefield.WindowController.Hit.Add(target.Name + "has been taken out! Eliminate their partner to win the match! (Your target has been changed automatically to " + other.Name + ".)");
                 
             }
 

@@ -62,6 +62,7 @@ namespace RDVFSharp
             WindowController.Hit.Add("The initial target for " + GetActor().Name + " is " + GetTarget().Name + ", and vice versa.");
             WindowController.Hit.Add("The initial target for " + GetPartner().Name + " is " + GetOther().Name + ", and vice versa.");
             WindowController.Hit.Add("To change targets, use the !changetarget command");
+            WindowController.Hit.Add("The teams are " + GetActor().Name + " and " + GetPartner().Name + " vs " + GetTarget().Name + " and " + GetOther().Name + "!");
             OutputTeamFighterstatus(); // Creates the fighter status blocks (HP/Mana/Stamina)
             OutputTeamFighterstats(); // Creates the fighter stat blocks (STR/DEX/END/INT/WIL)
             WindowController.Info.Add("[url=http://www.f-list.net/c/rendezvous%20fight/]Visit this page for game information[/url]");
