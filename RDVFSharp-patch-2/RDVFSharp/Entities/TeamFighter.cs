@@ -380,8 +380,17 @@ namespace RDVFSharp.Entities
             {
                 IsDead = true;
                 IsStunned = 100000;
-                TeamBattlefield.WindowController.Hit.Add(target.Name + "has been taken out! Eliminate their partner to win the match!");
+                TeamBattlefield.WindowController.Hit.Add(target.Name + "has been taken out! Eliminate their partner to win the match! (Your target has automatically changed to" + other.Name + ")");
                 
+            }
+
+            if (target.IsDead == true)
+
+            {
+                if (attacker.SetTarget == 1)
+                    attacker.SetTarget -= 1;
+                if (attacker.SetTarget == 0)
+                    attacker.SetTarget += 1;
             }
 
             if (target.IsDead == true & other.IsDead == true)
