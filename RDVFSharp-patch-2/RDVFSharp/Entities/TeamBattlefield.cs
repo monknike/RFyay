@@ -337,8 +337,8 @@ namespace RDVFSharp
             }
 
             TeamFighters[currentTeamFighter].Regen();
-            ChangeTarget();
             NextFighter();
+            ChangeTarget();
         }
     }
 }
