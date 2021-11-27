@@ -380,7 +380,7 @@ namespace RDVFSharp.Entities
             {
                 IsDead = true;
                 IsStunned = 100000;
-                TeamBattlefield.WindowController.Hit.Add(target.Name + "has been taken out! Eliminate their partner to win the match! (Your target has been changed automatically to " + other.Name + ".)");
+                TeamBattlefield.WindowController.Hit.Add(target.Name + "has been taken out! Eliminate their partner to win the match!");
                 
             }
 
