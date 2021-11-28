@@ -6,7 +6,12 @@ namespace RDVFSharp.Commands
     {
         public override void ExecuteCommand(string character, IEnumerable<string> args, string channel)
         {
-            if (Plugin.CurrentBattlefield.GetActor().IsRestrained || Plugin.CurrentBattlefield.GetTarget().IsRestrained)
+            if (Plugin.CurrentTeamBattlefield.GetActor().IsRestrained || Plugin.CurrentTeamBattlefield.GetTarget().IsRestrained)
+            {
+                base.ExecuteCommand(character, args, channel);
+            }
+
+            else if (Plugin.CurrentBattlefield.GetActor().IsRestrained || Plugin.CurrentBattlefield.GetTarget().IsRestrained)
             {
                 base.ExecuteCommand(character, args, channel);
             }

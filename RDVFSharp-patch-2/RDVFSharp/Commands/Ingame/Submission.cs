@@ -6,11 +6,16 @@ namespace RDVFSharp.Commands
     {
         public override void ExecuteCommand(string character, IEnumerable<string> args, string channel)
         {
-            if (Plugin.CurrentBattlefield.GetTarget().IsRestrained)
+            if (Plugin.CurrentTeamBattlefield.GetTarget().IsRestrained)
             {
                 base.ExecuteCommand(character, args, channel);
             }
-            else
+
+            else if (Plugin.CurrentBattlefield.GetTarget().IsRestrained)
+            {
+                base.ExecuteCommand(character, args, channel);
+            }
+            else 
             {
                 Plugin.FChatClient.SendMessageInChannel("You can only use Submission if you are grappling your opponent.", Plugin.Channel);
             }
