@@ -77,6 +77,7 @@ namespace RDVFSharp.Entities
         public int IsStunned { get; set; }
         public int IsDisoriented { get; set; }
         public List<string> IsGrappledBy { get; set; }
+        public int IsGrabbable { get; set; }
         public int IsFocused { get; set; }
         public int IsEscaping { get; set; }
         public int IsGuarding { get; set; }
@@ -134,7 +135,7 @@ namespace RDVFSharp.Entities
             LastKnownHP = HP;
             LastKnownMana = Mana;
             LastKnownStamina = Stamina;
-
+            IsGrabbable = 0;
             IsUnconscious = false;
             IsDead = false;
             CurseUsed = 0;
@@ -850,6 +851,30 @@ namespace RDVFSharp.Entities
             TeamBattlefield.WindowController.Hit.Add(attacker.Name + " TACKLED " + target.Name + ". " + attacker.Name + " can take another action while their opponent is stunned!");
 
             //Deal all the actual damage/effects here.
+
+
+            if (attacker.IsGrabbable == 0 && target.IsGrabbable == 0)
+            {
+                attacker.IsGrabbable += 1;
+                target.IsGrabbable += 1;
+            }
+            if (attacker.IsGrabbable == 0 && target.IsGrabbable == 1)
+            {
+                attacker.IsGrabbable += 1;
+            }
+            if (attacker.IsGrabbable == 1 && target.IsGrabbable == 0)
+            {
+                attacker.IsGrabbable += 1;
+                target.IsGrabbable += 2;
+            }
+            if (attacker.IsGrabbable == 2 && target.IsGrabbable == 1)
+            {
+                attacker.IsGrabbable -= 1;
+            }
+            if (attacker.IsGrabbable == 1 && target.IsGrabbable == 2)
+            {
+                attacker.IsGrabbable += 1;
+            }
 
             damage = Math.Max(damage, 0);
             if (damage > 0) target.HitHp(damage); //This is to prevent the game displayin that the attacker did 0 damage, which is the normal case.
