@@ -141,6 +141,7 @@ namespace RDVFSharp.Entities
             CurseUsed = 0;
             IsRestrained = false;
             IsDazed = false;
+            IsStunned = 0;
             IsDisoriented = 0;
             IsGrappledBy = new List<string>();
             IsFocused = 0;
@@ -380,7 +381,20 @@ namespace RDVFSharp.Entities
             if (HP <= DeathValue && IsDead == false)
             {
                 IsDead = true;
+                IsGrabbable = 0;
                 IsStunned = 100000;
+                CurseUsed = 0;
+                IsRestrained = false;
+                IsDazed = false;
+                IsDisoriented = 0;
+                IsGrappledBy = new List<string>();
+                IsFocused = 0;
+                IsEscaping = 0;//A bonus to escape attempts that increases whenever you fail one.
+                IsGuarding = 0;
+                IsEvading = 0;
+                IsAggressive = 0;
+                IsExposed = 0;
+                SetTarget = 0;
                 TeamBattlefield.WindowController.Hit.Add(target.Name + " has been taken out! Eliminate their partner to win the match! (Your target has automatically changed to " + other.Name + ")");
                 
             }
@@ -700,7 +714,7 @@ namespace RDVFSharp.Entities
             difficulty += (int)Math.Floor((double)(target.Strength - attacker.Strength) / 2); //Up the difficulty of submission moves based on the relative strength of the combatants.
             //difficulty *= (int)Math.Ceiling((double)2 * target.HP / target.MaxHP);//Multiply difficulty with percentage of opponent's health and 2, so that 50% health yields normal difficulty.
 
-            if (target.HP / target.MaxHP > 0.5) // If target is above 50% HP this is a bad move.
+            if (target.HP * 100 / target.MaxHP > 50) // If target is above 50% HP this is a bad move.
             {
                 damage /= 2;
                 difficulty *= 2;
@@ -875,6 +889,16 @@ namespace RDVFSharp.Entities
             {
                 attacker.IsGrabbable += 1;
             }
+            if (attacker.IsGrabbable == 2 && target.IsGrabbable ==0)
+            {
+                attacker.IsGrabbable -= 1;
+                target.IsGrabbable += 1;
+            }
+            if (attacker.IsGrabbable == 0 && target.IsGrabbable == 2)
+            {
+                attacker.IsGrabbable += 2;
+            }
+
 
             damage = Math.Max(damage, 0);
             if (damage > 0) target.HitHp(damage); //This is to prevent the game displayin that the attacker did 0 damage, which is the normal case.

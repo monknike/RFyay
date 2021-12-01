@@ -641,7 +641,7 @@ namespace RDVFSharp.Entities
             difficulty += (int)Math.Floor((double)(target.Strength - attacker.Strength) / 2); //Up the difficulty of submission moves based on the relative strength of the combatants.
             //difficulty *= (int)Math.Ceiling((double)2 * target.HP / target.MaxHP);//Multiply difficulty with percentage of opponent's health and 2, so that 50% health yields normal difficulty.
 
-            if (target.HP / target.MaxHP > 0.5) // If target is above 50% HP this is a bad move.
+            if (target.HP*100/target.MaxHP > 50) // If target is above 50% HP this is a bad move.
             {
                 damage /= 2; 
                 difficulty *= 2;
