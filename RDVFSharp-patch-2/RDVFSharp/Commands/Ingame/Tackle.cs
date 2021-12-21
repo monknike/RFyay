@@ -21,6 +21,7 @@ namespace RDVFSharp.Commands
             {
                 Plugin.FChatClient.SendMessageInChannel("You can't use Tackle when you already are in grappling range.", Plugin.Channel);
             }
+
         }
     }
 }
