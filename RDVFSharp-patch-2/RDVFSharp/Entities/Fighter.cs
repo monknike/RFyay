@@ -59,6 +59,7 @@ namespace RDVFSharp.Entities
 
         public int HP { get; set; }
         private int MaxHP { get; set; }
+        public int HPDOT { get; set; }
         public int Mana { get; set; }
         public int ManaCap { get; set; }
         public int MaxMana { get; set; }
@@ -68,6 +69,7 @@ namespace RDVFSharp.Entities
         public int DizzyValue { get; set; }
         public int ManaBurn { get; set; }
         public int StaminaBurn { get; set; }
+        public int HPBurn { get; set; }
         public int DamageEffectMult { get; set; }
         public bool IsUnconscious { get; set; }
         public bool IsDead { get; private set; }
@@ -243,6 +245,13 @@ namespace RDVFSharp.Entities
 
             if (StaminaCap == MaxStamina) StaminaBurn = 0;
 
+            if (HPBurn > 0)
+            {
+                AddHp (-HPDOT);
+            }
+                    
+
+
             if (IsUnconscious == false)
             {
                 //Disable regeneration.
@@ -348,7 +357,13 @@ namespace RDVFSharp.Entities
                 Battlefield.WindowController.Hint.Add(Name + " has a temporary +" + IsAggressive + " bonus to accuracy and attack damage.");
             }
 
-            if (IsExposed > 0)
+            if (HPBurn > 1)
+
+            {
+                Battlefield.WindowController.Hint.Add(Name + " is taking " + HPDOT + " damage for " + (HPBurn-1) + " turn(s).");
+            }
+
+            if (IsExposed > 0)  
             {
                 IsExposed -= 1;
                 if (IsExposed == 0) Battlefield.WindowController.Hint.Add(Name + " has recovered from the missed attack and is no longer Exposed!");
@@ -1421,8 +1436,160 @@ namespace RDVFSharp.Entities
             target.HitHp(damage);
             return true; //Successful attack, if we ever need to check that.
         }
-        
-        
+
+        public bool ActionDot(int roll)
+        {
+            var attacker = this;
+            var target = Battlefield.GetTarget();
+            var requiredMana = 5;
+            var difficulty = 7; //Base difficulty, rolls greater than this amount will hit.
+
+            //If opponent fumbled on their previous action they should become stunned.
+            if (target.Fumbled)
+            {
+                target.IsStunned = true;
+                target.Fumbled = false;
+            }
+
+            if (target.IsEvading > 0)
+            {//Evasion bonus from move/teleport. Only applies to one attack, then is reset to 0.
+             //Not affected by opponent's evasion bonus.
+                difficulty += target.IsEvading;
+                target.IsEvading = 0;
+            }
+            if (attacker.IsAggressive > 0)
+            {//Apply attack bonus from move/teleport then reset it.
+                difficulty -= attacker.IsAggressive;
+                attacker.IsAggressive = 0;
+            }
+
+            if (attacker.Mana < requiredMana)
+            {   //Not enough stamina-- reduced effect
+                difficulty += (int)Math.Ceiling((double)((requiredMana - attacker.Mana) / requiredMana) * (20 - difficulty)); // Too tired? You're going to fail.
+                Battlefield.WindowController.Hint.Add(attacker.Name + " didn't have enough Mana and took a penalty to the attempt.");
+            }
+
+            attacker.HitMana(requiredMana); //Now that mana has been checked, reduce the attacker's mana by the appopriate amount.
+
+            var attackTable = attacker.BuildActionTable(difficulty, 0, 0, target.Mana, target.ManaCap);
+            //If target can dodge the atatcker has to roll higher than the dodge value. Otherwise they need to roll higher than the miss value. We display the relevant value in the output.
+            Battlefield.WindowController.Info.Add("Dice Roll Required: " + (attackTable.miss + 1));
+
+            
+            if (roll <= attackTable.miss)
+            {   //Miss-- no effect.
+                Battlefield.WindowController.Hit.Add(" FAILED!");
+                return false; //Failed attack, if we ever need to check that.
+            }
+
+            if (roll >= attackTable.crit)
+            { //Critical Hit-- increased damage/effect, typically 3x damage if there are no other bonuses.
+                Battlefield.WindowController.Hit.Add(" CRITICAL SUCCESS! ");
+                Battlefield.WindowController.Hint.Add(attacker.Name + " can perform another action!");
+                // The only way the target can be stunned is if we set it to stunned with the action we're processing right now.
+                // That in turn is only possible if target had fumbled. So we restore the fumbled status, but keep the stun.
+                // That way we properly get a third action.
+                if (target.IsStunned) target.Fumbled = true;
+                target.IsStunned = true;
+                if (target.IsDisoriented > 0) target.IsDisoriented += 2;
+                if (target.IsExposed > 0) target.IsExposed += 2;
+            }
+
+            //The total mobility bonus generated. This will be split bewteen attack and defense.
+            var totalBonus = Utils.RollDice(new List<int>() { 5, 5 }) - 1 + attacker.Spellpower;
+
+            {
+                target.HPDOT = (int)Math.Ceiling((double)totalBonus / 2);
+                target.HPBurn = (5);
+                Battlefield.WindowController.Hit.Add(attacker.Name + " landed a critical strike against " + target.Name + " and will do damage over time for 4 turns!");
+            }
+
+            if (Battlefield.InGrabRange)
+            {
+                Battlefield.WindowController.Hit.Add(attacker.Name + " moved away!");
+                Battlefield.InGrabRange = false;
+                Battlefield.WindowController.Hint.Add(attacker.Name + " managed to put some distance between them and " + target.Name + " and is now out of grabbing range.");
+            }
+
+            return true; //Successful attack, if we ever need to check that.
+        }
+        public bool ActionStab(int roll)
+        {
+            var attacker = this;
+            var target = Battlefield.GetTarget();
+            var requiredStamina = 5;
+            var difficulty = 7; //Base difficulty, rolls greater than this amount will hit.
+
+            //If opponent fumbled on their previous action they should become stunned.
+            if (target.Fumbled)
+            {
+                target.IsStunned = true;
+                target.Fumbled = false;
+            }
+
+            if (target.IsEvading > 0)
+            {//Evasion bonus from move/teleport. Only applies to one attack, then is reset to 0.
+             //Not affected by opponent's evasion bonus.
+                difficulty += target.IsEvading; 
+                target.IsEvading = 0;
+            }
+            if (attacker.IsAggressive > 0)
+            {//Apply attack bonus from move/teleport then reset it.
+                difficulty -= attacker.IsAggressive;
+                attacker.IsAggressive = 0;
+            }
+
+            if (attacker.Stamina < requiredStamina)
+            {   //Not enough stamina-- reduced effect
+                difficulty += (int)Math.Ceiling((double)((requiredStamina - attacker.Stamina) / requiredStamina) * (20 - difficulty)); // Too tired? You're going to fail.
+                Battlefield.WindowController.Hint.Add(attacker.Name + " didn't have enough Stamina and took a penalty to the attempt.");
+            }
+
+            attacker.HitStamina(requiredStamina); //Now that mana has been checked, reduce the attacker's mana by the appopriate amount.
+
+            var attackTable = attacker.BuildActionTable(difficulty, 0, 0, target.Stamina, target.StaminaCap);
+            //If target can dodge the atatcker has to roll higher than the dodge value. Otherwise they need to roll higher than the miss value. We display the relevant value in the output.
+            Battlefield.WindowController.Info.Add("Dice Roll Required: " + (attackTable.miss + 1));
+
+
+            if (roll <= attackTable.miss)
+            {   //Miss-- no effect.
+                Battlefield.WindowController.Hit.Add(" FAILED!");
+                return false; //Failed attack, if we ever need to check that.
+            }
+
+            if (roll >= attackTable.crit)
+            { //Critical Hit-- increased damage/effect, typically 3x damage if there are no other bonuses.
+                Battlefield.WindowController.Hit.Add(" CRITICAL SUCCESS! ");
+                Battlefield.WindowController.Hint.Add(attacker.Name + " can perform another action!");
+                // The only way the target can be stunned is if we set it to stunned with the action we're processing right now.
+                // That in turn is only possible if target had fumbled. So we restore the fumbled status, but keep the stun.
+                // That way we properly get a third action.
+                if (target.IsStunned) target.Fumbled = true;
+                target.IsStunned = true;
+                if (target.IsDisoriented > 0) target.IsDisoriented += 2;
+                if (target.IsExposed > 0) target.IsExposed += 2;
+            }
+
+            //The total mobility bonus generated. This will be split bewteen attack and defense.
+            var totalBonus = Utils.RollDice(new List<int>() { 5, 5 }) - 1 + attacker.Strength;
+
+            {
+                target.HPDOT = (int)Math.Ceiling((double)totalBonus / 2);
+                target.HPBurn = (5);
+                Battlefield.WindowController.Hit.Add(attacker.Name + " landed a critical strike against " + target.Name + " and will do damage over time for 4 turns!");
+            }
+
+            if (Battlefield.InGrabRange)
+            {
+                Battlefield.WindowController.Hit.Add(attacker.Name + " moved away!");
+                Battlefield.InGrabRange = false;
+                Battlefield.WindowController.Hint.Add(attacker.Name + " managed to put some distance between them and " + target.Name + " and is now out of grabbing range.");
+            }
+
+            return true; //Successful attack, if we ever need to check that.
+        }
+
         public bool ActionRest(int roll)
         {
             var attacker = this;

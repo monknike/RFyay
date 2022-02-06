@@ -188,6 +188,12 @@ namespace RDVFSharp
                 Fighters[currentFighter].IsStunned = false;
                 NextFighter();
             }
+
+            if (Fighters[currentFighter].HPBurn > 0)
+            {
+                Fighters[currentFighter].HPBurn -= 1;
+
+            }
         }
 
         public void PickInitialActor()

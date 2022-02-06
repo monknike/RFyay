@@ -59,6 +59,7 @@ namespace RDVFSharp.Entities
 
         public int HP { get; set; }
         private int MaxHP { get; set; }
+        public int HPDOT { get; set; }
         public int Mana { get; set; }
         public int ManaCap { get; set; }
         public int MaxMana { get; set; }
@@ -68,6 +69,7 @@ namespace RDVFSharp.Entities
         public int DizzyValue { get; set; }
         public int ManaBurn { get; set; }
         public int StaminaBurn { get; set; }
+        public int HPBurn { get; set; }
         public int DamageEffectMult { get; set; }
         public bool IsUnconscious { get; set; }
         public bool IsDead { get; private set; }
@@ -250,6 +252,9 @@ namespace RDVFSharp.Entities
             }
 
             if (StaminaCap == MaxStamina) StaminaBurn = 0;
+
+            if (HPDOT > 0)
+                HPBurn = HPDOT;
 
             if (IsUnconscious == false)
             {
