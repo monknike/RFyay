@@ -140,7 +140,8 @@ namespace RDVFSharp
 
             TurnUpKeep(); //End of turn upkeep (Stamina regen, check for being stunned/knocked out, etc.)
             OutputTeamFighterstatus(); // Creates the fighter status blocks (HP/Mana/Stamina)
-                                   //Battlefield.outputTeamFighterstats();
+                                       //Battlefield.outputTeamFighterstats();
+            WindowController.Hint.Add(GetActor().Name + "'s next target is " + GetTarget().Name);
             WindowController.UpdateOutput(this); //Tells the window controller to format and dump all the queued up messages to the results screen.
         }
 
