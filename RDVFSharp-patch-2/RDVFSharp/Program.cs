@@ -25,8 +25,8 @@ namespace RDVFSharp
             var serviceProvider = services.BuildServiceProvider();
 
 #if DEBUG
-            var flistUsername = "monknike2000";
-            var flistPassword = "madhusudan1965";
+            var flistUsername = "INSERT";
+            var flistPassword = "INSERT";
             var botCharacterName = "RF Alpha"; //The character used to log in with
             var adminName = "Mayank";
             var channelToWatch = new List<string>() { "adh-3ccb421a7495d4f72097" }; //Your testing channel code, obtainable with /code in the chat
