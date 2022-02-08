@@ -400,6 +400,8 @@ namespace RDVFSharp.Entities
                 IsAggressive = 0;
                 IsExposed = 0;
                 SetTarget = 0;
+                TeamBattlefield.GetActor().IsEscaping = 0;
+                TeamBattlefield.GetActor().IsRestrained = false;
                 TeamBattlefield.WindowController.Hit.Add(target.Name + " has been taken out! Eliminate their partner to win the match! (Your target has automatically changed to " + other.Name + ")");
                 
             }
