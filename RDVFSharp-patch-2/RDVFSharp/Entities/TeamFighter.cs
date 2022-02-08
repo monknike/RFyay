@@ -402,7 +402,7 @@ namespace RDVFSharp.Entities
                 SetTarget = 0;
                 TeamBattlefield.GetActor().IsEscaping = 0;
                 TeamBattlefield.GetActor().IsRestrained = false;
-                TeamBattlefield.WindowController.Hit.Add(target.Name + " has been taken out! Eliminate their partner to win the match! (Your target has automatically changed to " + other.Name + ")");
+                TeamBattlefield.WindowController.Hit.Add(target.Name + " has been taken out! Eliminate their partner to win the match! (Your target has automatically changed)");
                 
             }
 
@@ -2263,7 +2263,7 @@ namespace RDVFSharp.Entities
             if (roll >= attackTable.targethit)
             {
 
-                TeamBattlefield.WindowController.Hit.Add("Success! Your target has changed to " + daze2.Name);
+                TeamBattlefield.WindowController.Hit.Add("Success! Your target has changed!");
                 if (attacker.SetTarget == 1)
                     attacker.SetTarget -=1;
                 if (attacker.SetTarget == 0)
