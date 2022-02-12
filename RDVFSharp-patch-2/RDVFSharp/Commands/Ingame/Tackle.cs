@@ -7,17 +7,31 @@ namespace RDVFSharp.Commands
         public override void ExecuteCommand(string character, IEnumerable<string> args, string channel)
         {
 
-            if (Plugin.CurrentTeamBattlefield.IsActive && (Plugin.CurrentTeamBattlefield.GetTarget().IsGrabbable != Plugin.CurrentTeamBattlefield.GetActor().IsGrabbable) || (Plugin.CurrentTeamBattlefield.GetActor().IsGrabbable == 0))
+            if (Plugin.CurrentBattlefield.IsActive)
+
+
             {
-                base.ExecuteCommand(character, args, channel);
+                if (!Plugin.CurrentBattlefield.InGrabRange)
+                {
+                    base.ExecuteCommand(character, args, channel);
+                }
             }
 
-            else if (Plugin.CurrentBattlefield.IsActive && !Plugin.CurrentBattlefield.InGrabRange)
-            {
-                base.ExecuteCommand(character, args, channel);
+
+            else if (Plugin.CurrentTeamBattlefield.IsActive)
+
+            {       
+                if (Plugin.CurrentTeamBattlefield.GetTarget().IsGrabbable != Plugin.CurrentTeamBattlefield.GetActor().IsGrabbable)
+                {
+                    base.ExecuteCommand(character, args, channel);
+                }
+                else if (Plugin.CurrentTeamBattlefield.GetActor().IsGrabbable == 0)
+                {
+                    base.ExecuteCommand(character, args, channel);
+                }
             }
-            
-            else 
+
+            else
             {
                 Plugin.FChatClient.SendMessageInChannel("You can't use Tackle when you already are in grappling range.", Plugin.Channel);
             }

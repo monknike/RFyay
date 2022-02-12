@@ -72,7 +72,7 @@ namespace RDVFSharp.Entities
         public int HPBurn { get; set; }
         public int DamageEffectMult { get; set; }
         public bool IsUnconscious { get; set; }
-        public bool IsDead { get; private set; }
+        public bool IsDead { get; set; }
         public int CurseUsed { get; set; }
         public bool IsRestrained { get; set; }
         public bool IsDazed { get; set; }
@@ -253,8 +253,11 @@ namespace RDVFSharp.Entities
 
             if (StaminaCap == MaxStamina) StaminaBurn = 0;
 
-            if (HPDOT > 0)
-                HPBurn = HPDOT;
+
+            if (HPBurn > 0)
+            {
+                AddHp(-HPDOT);
+            }
 
             if (IsUnconscious == false)
             {
@@ -356,6 +359,12 @@ namespace RDVFSharp.Entities
             //    IsFocused = 0;
             //}
 
+            if (HPBurn > 1)
+
+            {
+                TeamBattlefield.WindowController.Hint.Add(Name + " is taking " + HPDOT + " damage for " + (HPBurn - 1) + " turn(s).");
+            }
+
             if (IsGuarding > 0)
             {
                 TeamBattlefield.WindowController.Hint.Add(Name + " has a temporary +" + IsGuarding + " bonus to damage reduction.");
@@ -446,13 +455,16 @@ namespace RDVFSharp.Entities
         {
             var attacker = this;
             var target = TeamBattlefield.GetTarget();
+            var partner = TeamBattlefield.GetPartner();
+            var othertarget = TeamBattlefield.GetOther();
             var damage = Utils.RollDice(new List<int>() { 5, 5 }) - 1 + attacker.Strength;
             damage += Math.Min(attacker.Strength, attacker.Spellpower);
             var requiredStam = 5;
             var difficulty = 6;
 
-            //If opponent fumbled on their previous action they should become stunned.
-            if (target.Fumbled)
+            if (target.IsDead == false)
+            {
+                if (target.Fumbled)
             {
                 target.IsDazed = true;
                 target.Fumbled = false;
@@ -527,187 +539,439 @@ namespace RDVFSharp.Entities
 
             //If you're being grappled and you hit the opponent that will make it a little easier to escape later on.
             if (attacker.IsRestrained) attacker.IsEscaping += (int)Math.Floor((double)damage / 5);
+            
+                damage = Math.Max(damage, 1);
+                target.HitHp(damage);
+                target.HitStamina(damage);
+                return true; //Successful attack, if we ever need to check that.
+            }
 
-            damage = Math.Max(damage, 1);
-            target.HitHp(damage);
-            target.HitStamina(damage);
-            return true; //Successful attack, if we ever need to check that.
+            else
+            {
+                if (othertarget.Fumbled)
+                {
+                    othertarget.IsDazed = true;
+                    othertarget.Fumbled = false;
+                }
+
+                if (attacker.IsRestrained) difficulty += 2; //Up the difficulty if the attacker is restrained.
+                if (othertarget.IsRestrained) difficulty -= 4; //Lower it if the target is restrained.
+                if (othertarget.IsExposed > 0) difficulty -= 2; // If opponent left themself wide open after a failed strong attack, they'll be easier to hit.
+
+                if (othertarget.IsGuarding > 0)
+                {//Evasion bonus from move/teleport. Only applies to one attack, then is reset to 0.
+                    damage -= othertarget.IsGuarding;
+                }
+
+                if (attacker.IsGuarding > 0)
+                {//Apply attack bonus from move/teleport then reset it.
+                    attacker.IsGuarding = 0;
+                }
+                if (othertarget.IsEvading > 0)
+                {//Evasion bonus from move/teleport. Only applies to one attack, then is reset to 0.
+                    difficulty += othertarget.IsEvading;
+                    damage -= othertarget.IsEvading;
+                    othertarget.IsEvading = 0;
+                }
+                if (attacker.IsAggressive > 0)
+                {//Apply attack bonus from move/teleport then reset it.
+                    difficulty -= attacker.IsAggressive;
+                    damage += attacker.IsAggressive;
+                    attacker.IsAggressive = 0;
+                }
+
+                if (attacker.Stamina < requiredStam)
+                {   //Not enough stamina-- reduced effect
+                    damage *= attacker.Stamina / requiredStam;
+                    difficulty += (int)Math.Ceiling((double)((requiredStam - attacker.Stamina) / requiredStam) * (20 - difficulty)); // Too tired? You might miss more often.
+                    TeamBattlefield.WindowController.Hint.Add(attacker.Name + " did not have enough stamina, and took penalties to the attack.");
+                }
+
+                attacker.HitStamina(requiredStam);
+
+                var attackTable = attacker.BuildActionTable(difficulty, othertarget.Dexterity, attacker.Dexterity, othertarget.Stamina, othertarget.StaminaCap);
+                //If target can dodge the atatcker has to roll higher than the dodge value. Otherwise they need to roll higher than the miss value. We display the relevant value in the output.
+                TeamBattlefield.WindowController.Info.Add("Dice Roll Required: " + (attackTable.miss + 1));
+
+                if (roll <= attackTable.miss)
+                {   //Miss-- no effect.
+                    TeamBattlefield.WindowController.Hit.Add(" FAILED! ");
+                    return false; //Failed attack, if we ever need to check that.
+                }
+
+                if (roll >= attackTable.crit)
+                { //Critical Hit-- increased damage/effect, typically 3x damage if there are no other bonuses.
+                    TeamBattlefield.WindowController.Hit.Add(" CRITICAL HIT! ");
+                    TeamBattlefield.WindowController.Hint.Add(attacker.Name + " landed a particularly vicious blow!");
+                    damage += 10;
+                }
+                else
+                { //Normal hit.
+                    TeamBattlefield.WindowController.Hit.Add(" HIT! ");
+                }
+
+                //Deal all the actual damage/effects here.
+
+                if (TeamBattlefield.InGrabRange)
+                {// Succesful attacks will beat back the grabber before they can grab you, but not if you're already grappling.
+                    if (!attacker.IsRestrained && !othertarget.IsRestrained)
+                    {
+                        TeamBattlefield.InGrabRange = false;
+                        TeamBattlefield.WindowController.Hit.Add(attacker.Name + " distracted " + target.Name + " with the attack and was able to move out of grappling range!");
+                    }
+                }
+
+                //If you're being grappled and you hit the opponent that will make it a little easier to escape later on.
+                if (attacker.IsRestrained) attacker.IsEscaping += (int)Math.Floor((double)damage / 5); damage = Math.Max(damage, 1);
+                othertarget.HitHp(damage);
+                othertarget.HitStamina(damage);
+                return true; //Successful attack, if we ever need to check that.
+            }
         }
 
         public bool ActionHeavy(int roll)
         {
             var attacker = this;
             var target = TeamBattlefield.GetTarget();
+            var partner = TeamBattlefield.GetPartner();
+            var othertarget = TeamBattlefield.GetOther();
             var damage = Utils.RollDice(new List<int>() { 5, 5 }) - 1 + attacker.Strength;
             damage *= 2;
             damage += Math.Min(attacker.Strength, attacker.Spellpower);
             var requiredStam = 10;
             var difficulty = 8; //Base difficulty, rolls greater than this amount will hit.
 
-            //If opponent fumbled on their previous action they should become stunned.
-            if (target.Fumbled)
-            {
-                target.IsDazed = true;
-                target.Fumbled = false;
-            }
+            if (target.IsDead == false)
+            {//If opponent fumbled on their previous action they should become stunned.
+                if (target.Fumbled)
+                {
+                    target.IsDazed = true;
+                    target.Fumbled = false;
+                }
 
-            if (attacker.IsRestrained) difficulty += 2; //Up the difficulty if the attacker is restrained.
-            if (target.IsRestrained) difficulty -= 4; //Lower it if the target is restrained.
-            if (target.IsExposed > 0) difficulty -= 2; // If opponent left themself wide open after a failed strong attack, they'll be easier to hit.
+                if (attacker.IsRestrained) difficulty += 2; //Up the difficulty if the attacker is restrained.
+                if (target.IsRestrained) difficulty -= 4; //Lower it if the target is restrained.
+                if (target.IsExposed > 0) difficulty -= 2; // If opponent left themself wide open after a failed strong attack, they'll be easier to hit.
 
-            if (target.IsEvading > 0)
-            {//Evasion bonus from move/teleport. Only applies to one attack, then is reset to 0.
-                difficulty += target.IsEvading;
-                damage -= target.IsEvading;
-                target.IsEvading = 0;
-            }
-            if (attacker.IsAggressive > 0)
-            {//Apply attack bonus from move/teleport then reset it.
-                difficulty -= attacker.IsAggressive;
-                damage += attacker.IsAggressive;
-                attacker.IsAggressive = 0;
-            }
-            if (target.IsGuarding > 0)
-            {//Evasion bonus from move/teleport. Only applies to one attack, then is reset to 0.
-                damage -= target.IsGuarding;
-            }
-            if (attacker.IsGuarding > 0)
-            {//Apply attack bonus from move/teleport then reset it.
-                attacker.IsGuarding = 0;
-            }
+                if (target.IsEvading > 0)
+                {//Evasion bonus from move/teleport. Only applies to one attack, then is reset to 0.
+                    difficulty += target.IsEvading;
+                    damage -= target.IsEvading;
+                    target.IsEvading = 0;
+                }
+                if (attacker.IsAggressive > 0)
+                {//Apply attack bonus from move/teleport then reset it.
+                    difficulty -= attacker.IsAggressive;
+                    damage += attacker.IsAggressive;
+                    attacker.IsAggressive = 0;
+                }
+                if (target.IsGuarding > 0)
+                {//Evasion bonus from move/teleport. Only applies to one attack, then is reset to 0.
+                    damage -= target.IsGuarding;
+                }
+                if (attacker.IsGuarding > 0)
+                {//Apply attack bonus from move/teleport then reset it.
+                    attacker.IsGuarding = 0;
+                }
 
-            var critCheck = true;
-            if (attacker.Stamina < requiredStam)
-            {   //Not enough stamina-- reduced effect
-                critCheck = false;
-                damage *= attacker.Stamina / requiredStam;
-                difficulty += (int)Math.Ceiling((double)((requiredStam - attacker.Stamina) / requiredStam) * (20 - difficulty)); // Too tired? You're likely to miss.
-                TeamBattlefield.WindowController.Hint.Add(attacker.Name + " did not have enough stamina, and took penalties to the attack.");
-            }
+                var critCheck = true;
+                if (attacker.Stamina < requiredStam)
+                {   //Not enough stamina-- reduced effect
+                    critCheck = false;
+                    damage *= attacker.Stamina / requiredStam;
+                    difficulty += (int)Math.Ceiling((double)((requiredStam - attacker.Stamina) / requiredStam) * (20 - difficulty)); // Too tired? You're likely to miss.
+                    TeamBattlefield.WindowController.Hint.Add(attacker.Name + " did not have enough stamina, and took penalties to the attack.");
+                }
 
-            attacker.HitStamina(requiredStam); //Now that stamina has been checked, reduce the attacker's stamina by the appopriate amount.
+                attacker.HitStamina(requiredStam); //Now that stamina has been checked, reduce the attacker's stamina by the appopriate amount.
 
-            var attackTable = attacker.BuildActionTable(difficulty, target.Dexterity, attacker.Dexterity, target.Stamina, target.StaminaCap);
-            //If target can dodge the atatcker has to roll higher than the dodge value. Otherwise they need to roll higher than the miss value. We display the relevant value in the output.
-            TeamBattlefield.WindowController.Info.Add("Dice Roll Required: " + (attackTable.miss + 1));
+                var attackTable = attacker.BuildActionTable(difficulty, target.Dexterity, attacker.Dexterity, target.Stamina, target.StaminaCap);
+                //If target can dodge the atatcker has to roll higher than the dodge value. Otherwise they need to roll higher than the miss value. We display the relevant value in the output.
+                TeamBattlefield.WindowController.Info.Add("Dice Roll Required: " + (attackTable.miss + 1));
 
-            if (roll <= attackTable.miss)
-            {   //Miss-- no effect.
-                TeamBattlefield.WindowController.Hit.Add(" FAILED! ");
-                attacker.IsExposed += 4; //If the fighter misses a big attack, it leaves them open and they have to recover balance which gives the opponent a chance to strike.
-                TeamBattlefield.WindowController.Hint.Add(attacker.Name + " was left wide open by the failed attack and is now Exposed! " + target.Name + " has -2 difficulty to hit and can use Grab even if fighters are not in grappling range!");
-                return false; //Failed attack, if we ever need to check that.
-            }
+                if (roll <= attackTable.miss)
+                {   //Miss-- no effect.
+                    TeamBattlefield.WindowController.Hit.Add(" FAILED! ");
+                    attacker.IsExposed += 4; //If the fighter misses a big attack, it leaves them open and they have to recover balance which gives the opponent a chance to strike.
+                    TeamBattlefield.WindowController.Hint.Add(attacker.Name + " was left wide open by the failed attack and is now Exposed! " + target.Name + " has -2 difficulty to hit and can use Grab even if fighters are not in grappling range!");
+                    return false; //Failed attack, if we ever need to check that.
+                }
 
-            if (roll >= attackTable.crit && critCheck == true)
-            { //Critical Hit-- increased damage/effect, typically 3x damage if there are no other bonuses.
-                TeamBattlefield.WindowController.Hit.Add(" CRITICAL HIT! ");
-                TeamBattlefield.WindowController.Hint.Add(attacker.Name + " landed a particularly vicious blow!");
-                damage += 10;
+                if (roll >= attackTable.crit && critCheck == true)
+                { //Critical Hit-- increased damage/effect, typically 3x damage if there are no other bonuses.
+                    TeamBattlefield.WindowController.Hit.Add(" CRITICAL HIT! ");
+                    TeamBattlefield.WindowController.Hint.Add(attacker.Name + " landed a particularly vicious blow!");
+                    damage += 10;
+                }
+                else
+                { //Normal hit.
+                    TeamBattlefield.WindowController.Hit.Add(" HIT! ");
+                }
+
+                //Deal all the actual damage/effects here.
+
+                if (TeamBattlefield.InGrabRange)
+                {// Succesful attacks will beat back the grabber before they can grab you, but not if you're already grappling.
+                    if (!attacker.IsRestrained && !target.IsRestrained)
+                    {
+                        TeamBattlefield.InGrabRange = false;
+                        TeamBattlefield.WindowController.Hit.Add(attacker.Name + " distracted " + target.Name + " with the attack and was able to move out of grappling range!");
+                    }
+                }
+
+                //If you're being grappled and you hit the opponent that will make it a little easier to escape later on.
+                if (attacker.IsRestrained) attacker.IsEscaping += (int)Math.Floor((double)damage / 5);
+
+                damage = Math.Max(damage, 1);
+                target.HitHp(damage);
+                return true; //Successful attack, if we ever need to check that.
             }
             else
-            { //Normal hit.
-                TeamBattlefield.WindowController.Hit.Add(" HIT! ");
-            }
-
-            //Deal all the actual damage/effects here.
-
-            if (TeamBattlefield.InGrabRange)
-            {// Succesful attacks will beat back the grabber before they can grab you, but not if you're already grappling.
-                if (!attacker.IsRestrained && !target.IsRestrained)
+            {
+                if (othertarget.Fumbled)
                 {
-                    TeamBattlefield.InGrabRange = false;
-                    TeamBattlefield.WindowController.Hit.Add(attacker.Name + " distracted " + target.Name + " with the attack and was able to move out of grappling range!");
+                    othertarget.IsDazed = true;
+                    othertarget.Fumbled = false;
                 }
+
+                if (attacker.IsRestrained) difficulty += 2; //Up the difficulty if the attacker is restrained.
+                if (othertarget.IsRestrained) difficulty -= 4; //Lower it if the target is restrained.
+                if (othertarget.IsExposed > 0) difficulty -= 2; // If opponent left themself wide open after a failed strong attack, they'll be easier to hit.
+
+                if (othertarget.IsEvading > 0)
+                {//Evasion bonus from move/teleport. Only applies to one attack, then is reset to 0.
+                    difficulty += othertarget.IsEvading;
+                    damage -= othertarget.IsEvading;
+                    othertarget.IsEvading = 0;
+                }
+                if (attacker.IsAggressive > 0)
+                {//Apply attack bonus from move/teleport then reset it.
+                    difficulty -= attacker.IsAggressive;
+                    damage += attacker.IsAggressive;
+                    attacker.IsAggressive = 0;
+                }
+                if (othertarget.IsGuarding > 0)
+                {//Evasion bonus from move/teleport. Only applies to one attack, then is reset to 0.
+                    damage -= othertarget.IsGuarding;
+                }
+                if (attacker.IsGuarding > 0)
+                {//Apply attack bonus from move/teleport then reset it.
+                    attacker.IsGuarding = 0;
+                }
+
+                var critCheck = true;
+                if (attacker.Stamina < requiredStam)
+                {   //Not enough stamina-- reduced effect
+                    critCheck = false;
+                    damage *= attacker.Stamina / requiredStam;
+                    difficulty += (int)Math.Ceiling((double)((requiredStam - attacker.Stamina) / requiredStam) * (20 - difficulty)); // Too tired? You're likely to miss.
+                    TeamBattlefield.WindowController.Hint.Add(attacker.Name + " did not have enough stamina, and took penalties to the attack.");
+                }
+
+                attacker.HitStamina(requiredStam); //Now that stamina has been checked, reduce the attacker's stamina by the appopriate amount.
+
+                var attackTable = attacker.BuildActionTable(difficulty, othertarget.Dexterity, attacker.Dexterity, othertarget.Stamina, othertarget.StaminaCap);
+                //If target can dodge the atatcker has to roll higher than the dodge value. Otherwise they need to roll higher than the miss value. We display the relevant value in the output.
+                TeamBattlefield.WindowController.Info.Add("Dice Roll Required: " + (attackTable.miss + 1));
+
+                if (roll <= attackTable.miss)
+                {   //Miss-- no effect.
+                    TeamBattlefield.WindowController.Hit.Add(" FAILED! ");
+                    attacker.IsExposed += 4; //If the fighter misses a big attack, it leaves them open and they have to recover balance which gives the opponent a chance to strike.
+                    TeamBattlefield.WindowController.Hint.Add(attacker.Name + " was left wide open by the failed attack and is now Exposed! " + othertarget.Name + " has -2 difficulty to hit and can use Grab even if fighters are not in grappling range!");
+                    return false; //Failed attack, if we ever need to check that.
+                }
+
+                if (roll >= attackTable.crit && critCheck == true)
+                { //Critical Hit-- increased damage/effect, typically 3x damage if there are no other bonuses.
+                    TeamBattlefield.WindowController.Hit.Add(" CRITICAL HIT! ");
+                    TeamBattlefield.WindowController.Hint.Add(attacker.Name + " landed a particularly vicious blow!");
+                    damage += 10;
+                }
+                else
+                { //Normal hit.
+                    TeamBattlefield.WindowController.Hit.Add(" HIT! ");
+                }
+
+                //Deal all the actual damage/effects here.
+
+                if (TeamBattlefield.InGrabRange)
+                {// Succesful attacks will beat back the grabber before they can grab you, but not if you're already grappling.
+                    if (!attacker.IsRestrained && !othertarget.IsRestrained)
+                    {
+                        TeamBattlefield.InGrabRange = false;
+                        TeamBattlefield.WindowController.Hit.Add(attacker.Name + " distracted " + othertarget.Name + " with the attack and was able to move out of grappling range!");
+                    }
+                }
+
+                //If you're being grappled and you hit the opponent that will make it a little easier to escape later on.
+                if (attacker.IsRestrained) attacker.IsEscaping += (int)Math.Floor((double)damage / 5);
+
+                damage = Math.Max(damage, 1);
+                othertarget.HitHp(damage);
+                return true; //Successful attack, if we ever need to check that.
+                             }
             }
-
-            //If you're being grappled and you hit the opponent that will make it a little easier to escape later on.
-            if (attacker.IsRestrained) attacker.IsEscaping += (int)Math.Floor((double)damage / 5);
-
-            damage = Math.Max(damage, 1);
-            target.HitHp(damage);
-            return true; //Successful attack, if we ever need to check that.
-        }
 
         public bool ActionGrab(int roll)
         {
             var attacker = this;
             var target = TeamBattlefield.GetTarget();
+            var partner = TeamBattlefield.GetPartner();
+            var othertarget = TeamBattlefield.GetOther();
             var damage = Utils.RollDice(new List<int>() { 5, 5 }) - 1 + attacker.Strength;
             damage /= 2;
             var requiredStam = 5;
-
             var difficulty = 6; //Base difficulty, rolls greater than this amount will hit.
 
-            if (target.IsExposed > 0) difficulty -= 2; // If opponent left themself wide open after a failed strong attack, they'll be easier to hit.
 
-            if (target.IsEvading > 0)
-            {//Evasion bonus from move/teleport. Only applies to one attack, then is reset to 0.
-                difficulty += target.IsEvading;
-                damage -= target.IsEvading;
-                target.IsEvading = 0;
-            }
-            if (attacker.IsAggressive > 0)
-            {//Apply attack bonus from move/teleport then reset it.
-                difficulty -= attacker.IsAggressive;
-                damage += attacker.IsAggressive;
-                attacker.IsAggressive = 0;
-            }
+            if (target.IsDead == false)
 
-            if (attacker.IsGuarding > 0)
-            {//Apply attack bonus from move/teleport then reset it.
-                attacker.IsGuarding = 0;
-            }
-
-            var critCheck = true;
-            if (attacker.Stamina < requiredStam)
-            {   //Not enough stamina-- reduced effect
-                critCheck = false;
-                damage *= attacker.Stamina / requiredStam;
-                difficulty += (int)Math.Ceiling((double)((requiredStam - attacker.Stamina) / requiredStam) * (20 - difficulty)); // Too tired? You're likely to miss.
-                TeamBattlefield.WindowController.Hint.Add(attacker.Name + " did not have enough stamina, and took penalties to the attack.");
-            }
-
-            attacker.HitStamina(requiredStam); //Now that stamina has been checked, reduce the attacker's stamina by the appopriate amount. (We'll hit the attacker up for the rest on a miss or a dodge).
-
-            //If opponent fumbled on their previous action they should become stunned.
-            // We put it down here for Grab so it doesn't interfere with the stun from a crit on moving into range.
-            if (target.Fumbled)
             {
-                target.IsDazed = true;
-                target.Fumbled = false;
+                if (target.IsExposed > 0) difficulty -= 2; // If opponent left themself wide open after a failed strong attack, they'll be easier to hit.
+
+                if (target.IsEvading > 0)
+                {//Evasion bonus from move/teleport. Only applies to one attack, then is reset to 0.
+                    difficulty += target.IsEvading;
+                    damage -= target.IsEvading;
+                    target.IsEvading = 0;
+                }
+                if (attacker.IsAggressive > 0)
+                {//Apply attack bonus from move/teleport then reset it.
+                    difficulty -= attacker.IsAggressive;
+                    damage += attacker.IsAggressive;
+                    attacker.IsAggressive = 0;
+                }
+
+                if (attacker.IsGuarding > 0)
+                {//Apply attack bonus from move/teleport then reset it.
+                    attacker.IsGuarding = 0;
+                }
+
+                var critCheck = true;
+                if (attacker.Stamina < requiredStam)
+                {   //Not enough stamina-- reduced effect
+                    critCheck = false;
+                    damage *= attacker.Stamina / requiredStam;
+                    difficulty += (int)Math.Ceiling((double)((requiredStam - attacker.Stamina) / requiredStam) * (20 - difficulty)); // Too tired? You're likely to miss.
+                    TeamBattlefield.WindowController.Hint.Add(attacker.Name + " did not have enough stamina, and took penalties to the attack.");
+                }
+
+                attacker.HitStamina(requiredStam); //Now that stamina has been checked, reduce the attacker's stamina by the appopriate amount. (We'll hit the attacker up for the rest on a miss or a dodge).
+
+                //If opponent fumbled on their previous action they should become stunned.
+                // We put it down here for Grab so it doesn't interfere with the stun from a crit on moving into range.
+                if (target.Fumbled)
+                {
+                    target.IsDazed = true;
+                    target.Fumbled = false;
+                }
+
+                var attackTable = attacker.BuildActionTable(difficulty, target.Dexterity, attacker.Dexterity, target.Stamina, target.StaminaCap);
+                //If target can dodge the atatcker has to roll higher than the dodge value. Otherwise they need to roll higher than the miss value. We display the relevant value in the output.
+                TeamBattlefield.WindowController.Info.Add("Dice Roll Required: " + (attackTable.miss + 1));
+
+                if (roll <= attackTable.miss)
+                {   //Miss-- no effect.
+                    TeamBattlefield.WindowController.Hit.Add(" FAILED! ");
+                    TeamBattlefield.WindowController.Hint.Add(attacker.Name + " failed to establish a hold!");
+                    return false; //Failed attack, if we ever need to check that.
+                }
+
+                if (roll >= attackTable.crit && critCheck)
+                { //Critical Hit-- increased damage/effect, typically 3x damage if there are no other bonuses.
+                    TeamBattlefield.WindowController.Hit.Add(" CRITICAL HIT! ");
+                    TeamBattlefield.WindowController.Hint.Add("Critical! " + attacker.Name + " found a particularly good hold!");
+                    damage += 10;
+                }
+
+                //grab can only be used when you are not grappling the target, so we no longer need the old check.
+                TeamBattlefield.WindowController.Hit.Add(attacker.Name + " GRABBED " + target.Name + "! ");
+                TeamBattlefield.WindowController.Hint.Add(target.Name + " is being grappled! " + attacker.Name + " has reduced difficulty to use melee attacks and can also use the special attacks Throw and Submission.");
+                TeamBattlefield.WindowController.Hint.Add(target.Name + " can try to escape the grapple by using Move, Throw, or Teleport.");
+                target.IsGrappledBy.Add(attacker.Name);
+
+                //If we managed to grab without being in grab range, we are certainly in grabe range afterwards.
+
+
+                damage = Math.Max(damage, 1);
+                target.HitHp(damage);
+                return true; //Successful attack, if we ever need to check that.
             }
 
-            var attackTable = attacker.BuildActionTable(difficulty, target.Dexterity, attacker.Dexterity, target.Stamina, target.StaminaCap);
-            //If target can dodge the atatcker has to roll higher than the dodge value. Otherwise they need to roll higher than the miss value. We display the relevant value in the output.
-            TeamBattlefield.WindowController.Info.Add("Dice Roll Required: " + (attackTable.miss + 1));
+            else
+            {
+                if (othertarget.IsExposed > 0) difficulty -= 2; // If opponent left themself wide open after a failed strong attack, they'll be easier to hit.
 
-            if (roll <= attackTable.miss)
-            {   //Miss-- no effect.
-                TeamBattlefield.WindowController.Hit.Add(" FAILED! ");
-                TeamBattlefield.WindowController.Hint.Add(attacker.Name + " failed to establish a hold!");
-                return false; //Failed attack, if we ever need to check that.
+                if (othertarget.IsEvading > 0)
+                {//Evasion bonus from move/teleport. Only applies to one attack, then is reset to 0.
+                    difficulty += othertarget.IsEvading;
+                    damage -= othertarget.IsEvading;
+                    othertarget.IsEvading = 0;
+                }
+                if (attacker.IsAggressive > 0)
+                {//Apply attack bonus from move/teleport then reset it.
+                    difficulty -= attacker.IsAggressive;
+                    damage += attacker.IsAggressive;
+                    attacker.IsAggressive = 0;
+                }
+
+                if (attacker.IsGuarding > 0)
+                {//Apply attack bonus from move/teleport then reset it.
+                    attacker.IsGuarding = 0;
+                }
+
+                var critCheck = true;
+                if (attacker.Stamina < requiredStam)
+                {   //Not enough stamina-- reduced effect
+                    critCheck = false;
+                    damage *= attacker.Stamina / requiredStam;
+                    difficulty += (int)Math.Ceiling((double)((requiredStam - attacker.Stamina) / requiredStam) * (20 - difficulty)); // Too tired? You're likely to miss.
+                    TeamBattlefield.WindowController.Hint.Add(attacker.Name + " did not have enough stamina, and took penalties to the attack.");
+                }
+
+                attacker.HitStamina(requiredStam); //Now that stamina has been checked, reduce the attacker's stamina by the appopriate amount. (We'll hit the attacker up for the rest on a miss or a dodge).
+
+                //If opponent fumbled on their previous action they should become stunned.
+                // We put it down here for Grab so it doesn't interfere with the stun from a crit on moving into range.
+                if (othertarget.Fumbled)
+                {
+                    othertarget.IsDazed = true;
+                    othertarget.Fumbled = false;
+                }
+
+                var attackTable = attacker.BuildActionTable(difficulty, othertarget.Dexterity, attacker.Dexterity, othertarget.Stamina, othertarget.StaminaCap);
+                //If target can dodge the atatcker has to roll higher than the dodge value. Otherwise they need to roll higher than the miss value. We display the relevant value in the output.
+                TeamBattlefield.WindowController.Info.Add("Dice Roll Required: " + (attackTable.miss + 1));
+
+                if (roll <= attackTable.miss)
+                {   //Miss-- no effect.
+                    TeamBattlefield.WindowController.Hit.Add(" FAILED! ");
+                    TeamBattlefield.WindowController.Hint.Add(attacker.Name + " failed to establish a hold!");
+                    return false; //Failed attack, if we ever need to check that.
+                }
+
+                if (roll >= attackTable.crit && critCheck)
+                { //Critical Hit-- increased damage/effect, typically 3x damage if there are no other bonuses.
+                    TeamBattlefield.WindowController.Hit.Add(" CRITICAL HIT! ");
+                    TeamBattlefield.WindowController.Hint.Add("Critical! " + attacker.Name + " found a particularly good hold!");
+                    damage += 10;
+                }
+
+                //grab can only be used when you are not grappling the target, so we no longer need the old check.
+                TeamBattlefield.WindowController.Hit.Add(attacker.Name + " GRABBED " + othertarget.Name + "! ");
+                TeamBattlefield.WindowController.Hint.Add(othertarget.Name + " is being grappled! " + attacker.Name + " has reduced difficulty to use melee attacks and can also use the special attacks Throw and Submission.");
+                TeamBattlefield.WindowController.Hint.Add(othertarget.Name + " can try to escape the grapple by using Move, Throw, or Teleport.");
+                othertarget.IsGrappledBy.Add(attacker.Name);
+
+                //If we managed to grab without being in grab range, we are certainly in grabe range afterwards.
+
+
+                damage = Math.Max(damage, 1);
+                othertarget.HitHp(damage);
+                return true; //Successful attack, if we ever need to check that.
             }
-
-            if (roll >= attackTable.crit && critCheck)
-            { //Critical Hit-- increased damage/effect, typically 3x damage if there are no other bonuses.
-                TeamBattlefield.WindowController.Hit.Add(" CRITICAL HIT! ");
-                TeamBattlefield.WindowController.Hint.Add("Critical! " + attacker.Name + " found a particularly good hold!");
-                damage += 10;
-            }
-
-            //grab can only be used when you are not grappling the target, so we no longer need the old check.
-            TeamBattlefield.WindowController.Hit.Add(attacker.Name + " GRABBED " + target.Name + "! ");
-            TeamBattlefield.WindowController.Hint.Add(target.Name + " is being grappled! " + attacker.Name + " has reduced difficulty to use melee attacks and can also use the special attacks Throw and Submission.");
-            TeamBattlefield.WindowController.Hint.Add(target.Name + " can try to escape the grapple by using Move, Throw, or Teleport.");
-            target.IsGrappledBy.Add(attacker.Name);
-
-            //If we managed to grab without being in grab range, we are certainly in grabe range afterwards.
-
-
-            damage = Math.Max(damage, 1);
-            target.HitHp(damage);
-            return true; //Successful attack, if we ever need to check that.
+        
         }
 
         public bool ActionSubmission(int roll)
@@ -803,117 +1067,228 @@ namespace RDVFSharp.Entities
         {
             var attacker = this;
             var target = TeamBattlefield.GetTarget();
-            var daze1 = TeamBattlefield.GetPartner();
-            var daze2 = TeamBattlefield.GetOther();
+            var partner = TeamBattlefield.GetPartner();
+            var othertarget = TeamBattlefield.GetOther();
             var damage = Utils.RollDice(new List<int>() { 5, 5 }) - 1 + attacker.Strength;
             damage /= 2;
             var requiredStam = 10;
             var difficulty = 8; //Base difficulty, rolls greater than this amount will hit.
 
-            if (target.IsExposed > 0) difficulty -= 2; // If opponent left themself wide open after a failed strong attack, they'll be easier to hit.
+            if (target.IsDead == false)
 
-            if (target.IsEvading > 0)
-            {//Evasion bonus from move/teleport. Only applies to one attack, then is reset to 0.
-                difficulty += target.IsEvading;
-                damage -= target.IsEvading;
-                target.IsEvading = 0;
-            }
-            if (attacker.IsAggressive > 0)
-            {//Apply attack bonus from move/teleport then reset it.
-                difficulty -= attacker.IsAggressive;
-                damage += attacker.IsAggressive;
-                attacker.IsAggressive = 0;
-            }
-            if (target.IsGuarding > 0)
-            {//Evasion bonus from move/teleport. Only applies to one attack, then is reset to 0.
-                damage -= target.IsGuarding;
-            }
+            {
+                if (target.IsExposed > 0) difficulty -= 2; // If opponent left themself wide open after a failed strong attack, they'll be easier to hit.
 
-            if (attacker.IsGuarding > 0)
-            {//Apply attack bonus from move/teleport then reset it.
-                attacker.IsGuarding = 0;
-            }
-
-            var critCheck = true;
-            if (attacker.Stamina < requiredStam)
-            {   //Not enough stamina-- reduced effect
-                critCheck = false;
-                damage *= attacker.Stamina / requiredStam;
-                difficulty += (int)Math.Ceiling((double)((requiredStam - attacker.Stamina) / requiredStam) * (20 - difficulty)); // Too tired? You're likely to miss.
-                TeamBattlefield.WindowController.Hint.Add(attacker.Name + " did not have enough stamina, and took penalties to the attack.");
-            }
-
-            attacker.HitStamina(requiredStam); //Now that stamina has been checked, reduce the attacker's stamina by the appopriate amount. (We'll hit the attacker up for the rest on a miss or a dodge).
-
-            var attackTable = attacker.BuildActionTable(difficulty, target.Dexterity, attacker.Dexterity, target.Stamina, target.StaminaCap);
-            //If target can dodge the atatcker has to roll higher than the dodge value. Otherwise they need to roll higher than the miss value. We display the relevant value in the output.
-            TeamBattlefield.WindowController.Info.Add("Dice Roll Required: " + (attackTable.miss + 1));
-
-            if (roll <= attackTable.miss)
-            {   //Miss-- no effect.
-                TeamBattlefield.WindowController.Hit.Add(" FAILED!");
-                attacker.IsExposed += 4; //If the fighter misses a big attack, it leaves them open and they have to recover balance which gives the opponent a chance to strike.
-                TeamBattlefield.WindowController.Hint.Add(attacker.Name + " was left wide open by the failed attack and is now Exposed! " + target.Name + " has -2 difficulty to hit and can use Grab even if fighters are not in grappling range!");
-                //If opponent fumbled on their previous action they should become stunned. Tackle is a special case because it stuns anyway if it hits, so we only do this on a miss.
-                if (target.Fumbled)
-                {
-                    target.IsDazed = true;
-                    target.Fumbled = false;
+                if (target.IsEvading > 0)
+                {//Evasion bonus from move/teleport. Only applies to one attack, then is reset to 0.
+                    difficulty += target.IsEvading;
+                    damage -= target.IsEvading;
+                    target.IsEvading = 0;
                 }
-                return false; //Failed attack, if we ever need to check that.
+                if (attacker.IsAggressive > 0)
+                {//Apply attack bonus from move/teleport then reset it.
+                    difficulty -= attacker.IsAggressive;
+                    damage += attacker.IsAggressive;
+                    attacker.IsAggressive = 0;
+                }
+                if (target.IsGuarding > 0)
+                {//Evasion bonus from move/teleport. Only applies to one attack, then is reset to 0.
+                    damage -= target.IsGuarding;
+                }
+
+                if (attacker.IsGuarding > 0)
+                {//Apply attack bonus from move/teleport then reset it.
+                    attacker.IsGuarding = 0;
+                }
+
+                var critCheck = true;
+                if (attacker.Stamina < requiredStam)
+                {   //Not enough stamina-- reduced effect
+                    critCheck = false;
+                    damage *= attacker.Stamina / requiredStam;
+                    difficulty += (int)Math.Ceiling((double)((requiredStam - attacker.Stamina) / requiredStam) * (20 - difficulty)); // Too tired? You're likely to miss.
+                    TeamBattlefield.WindowController.Hint.Add(attacker.Name + " did not have enough stamina, and took penalties to the attack.");
+                }
+
+                attacker.HitStamina(requiredStam); //Now that stamina has been checked, reduce the attacker's stamina by the appopriate amount. (We'll hit the attacker up for the rest on a miss or a dodge).
+
+                var attackTable = attacker.BuildActionTable(difficulty, target.Dexterity, attacker.Dexterity, target.Stamina, target.StaminaCap);
+                //If target can dodge the atatcker has to roll higher than the dodge value. Otherwise they need to roll higher than the miss value. We display the relevant value in the output.
+                TeamBattlefield.WindowController.Info.Add("Dice Roll Required: " + (attackTable.miss + 1));
+
+                if (roll <= attackTable.miss)
+                {   //Miss-- no effect.
+                    TeamBattlefield.WindowController.Hit.Add(" FAILED!");
+                    attacker.IsExposed += 4; //If the fighter misses a big attack, it leaves them open and they have to recover balance which gives the opponent a chance to strike.
+                    TeamBattlefield.WindowController.Hint.Add(attacker.Name + " was left wide open by the failed attack and is now Exposed! " + target.Name + " has -2 difficulty to hit and can use Grab even if fighters are not in grappling range!");
+                    //If opponent fumbled on their previous action they should become stunned. Tackle is a special case because it stuns anyway if it hits, so we only do this on a miss.
+                    if (target.Fumbled)
+                    {
+                        target.IsDazed = true;
+                        target.Fumbled = false;
+                    }
+                    return false; //Failed attack, if we ever need to check that.
+                }
+
+                if (roll >= attackTable.crit && critCheck == true)
+                { //Critical Hit-- increased damage/effect, typically 3x damage if there are no other bonuses.
+                    TeamBattlefield.WindowController.Hint.Add("Critical Hit! " + attacker.Name + " really drove that one home!");
+                    damage += 10;
+                }
+
+                TeamBattlefield.WindowController.Hit.Add(attacker.Name + " TACKLED " + target.Name + ". " + attacker.Name + " can take another action while their opponent is stunned!");
+
+                //Deal all the actual damage/effects here.
+
+
+                if (attacker.IsGrabbable == 0 && target.IsGrabbable == 0)
+                {
+                    attacker.IsGrabbable += 1;
+                    target.IsGrabbable += 1;
+                }
+                if (attacker.IsGrabbable == 0 && target.IsGrabbable == 1)
+                {
+                    attacker.IsGrabbable += 1;
+                }
+                if (attacker.IsGrabbable == 1 && target.IsGrabbable == 0)
+                {
+                    attacker.IsGrabbable += 1;
+                    target.IsGrabbable += 2;
+                }
+                if (attacker.IsGrabbable == 2 && target.IsGrabbable == 1)
+                {
+                    attacker.IsGrabbable -= 1;
+                }
+                if (attacker.IsGrabbable == 1 && target.IsGrabbable == 2)
+                {
+                    attacker.IsGrabbable += 1;
+                }
+                if (attacker.IsGrabbable == 2 && target.IsGrabbable == 0)
+                {
+                    attacker.IsGrabbable -= 1;
+                    target.IsGrabbable += 1;
+                }
+                if (attacker.IsGrabbable == 0 && target.IsGrabbable == 2)
+                {
+                    attacker.IsGrabbable += 2;
+                }
+
+
+                damage = Math.Max(damage, 0);
+                if (damage > 0) target.HitHp(damage); //This is to prevent the game displayin that the attacker did 0 damage, which is the normal case.
+                target.IsStunned = 2;
+                partner.IsDazed = true;
+                othertarget.IsDazed = true;
+                return true; //Successful attack, if we ever need to check that.
+
             }
 
-            if (roll >= attackTable.crit && critCheck == true)
-            { //Critical Hit-- increased damage/effect, typically 3x damage if there are no other bonuses.
-                TeamBattlefield.WindowController.Hint.Add("Critical Hit! " + attacker.Name + " really drove that one home!");
-                damage += 10;
-            }
+            else
+            {
+                if (othertarget.IsExposed > 0) difficulty -= 2; // If opponent left themself wide open after a failed strong attack, they'll be easier to hit.
 
-            TeamBattlefield.WindowController.Hit.Add(attacker.Name + " TACKLED " + target.Name + ". " + attacker.Name + " can take another action while their opponent is stunned!");
+                if (othertarget.IsEvading > 0)
+                {//Evasion bonus from move/teleport. Only applies to one attack, then is reset to 0.
+                    difficulty += othertarget.IsEvading;
+                    damage -= othertarget.IsEvading;
+                    othertarget.IsEvading = 0;
+                }
+                if (attacker.IsAggressive > 0)
+                {//Apply attack bonus from move/teleport then reset it.
+                    difficulty -= attacker.IsAggressive;
+                    damage += attacker.IsAggressive;
+                    attacker.IsAggressive = 0;
+                }
+                if (othertarget.IsGuarding > 0)
+                {//Evasion bonus from move/teleport. Only applies to one attack, then is reset to 0.
+                    damage -= othertarget.IsGuarding;
+                }
 
-            //Deal all the actual damage/effects here.
+                if (attacker.IsGuarding > 0)
+                {//Apply attack bonus from move/teleport then reset it.
+                    attacker.IsGuarding = 0;
+                }
+
+                var critCheck = true;
+                if (attacker.Stamina < requiredStam)
+                {   //Not enough stamina-- reduced effect
+                    critCheck = false;
+                    damage *= attacker.Stamina / requiredStam;
+                    difficulty += (int)Math.Ceiling((double)((requiredStam - attacker.Stamina) / requiredStam) * (20 - difficulty)); // Too tired? You're likely to miss.
+                    TeamBattlefield.WindowController.Hint.Add(attacker.Name + " did not have enough stamina, and took penalties to the attack.");
+                }
+
+                attacker.HitStamina(requiredStam); //Now that stamina has been checked, reduce the attacker's stamina by the appopriate amount. (We'll hit the attacker up for the rest on a miss or a dodge).
+
+                var attackTable = attacker.BuildActionTable(difficulty, othertarget.Dexterity, attacker.Dexterity, othertarget.Stamina, othertarget.StaminaCap);
+                //If target can dodge the atatcker has to roll higher than the dodge value. Otherwise they need to roll higher than the miss value. We display the relevant value in the output.
+                TeamBattlefield.WindowController.Info.Add("Dice Roll Required: " + (attackTable.miss + 1));
+
+                if (roll <= attackTable.miss)
+                {   //Miss-- no effect.
+                    TeamBattlefield.WindowController.Hit.Add(" FAILED!");
+                    attacker.IsExposed += 4; //If the fighter misses a big attack, it leaves them open and they have to recover balance which gives the opponent a chance to strike.
+                    TeamBattlefield.WindowController.Hint.Add(attacker.Name + " was left wide open by the failed attack and is now Exposed! " + othertarget.Name + " has -2 difficulty to hit and can use Grab even if fighters are not in grappling range!");
+                    //If opponent fumbled on their previous action they should become stunned. Tackle is a special case because it stuns anyway if it hits, so we only do this on a miss.
+                    if (othertarget.Fumbled)
+                    {
+                        othertarget.IsDazed = true;
+                        othertarget.Fumbled = false;
+                    }
+                    return false; //Failed attack, if we ever need to check that.
+                }
+
+                if (roll >= attackTable.crit && critCheck == true)
+                { //Critical Hit-- increased damage/effect, typically 3x damage if there are no other bonuses.
+                    TeamBattlefield.WindowController.Hint.Add("Critical Hit! " + attacker.Name + " really drove that one home!");
+                    damage += 10;
+                }
+
+                TeamBattlefield.WindowController.Hit.Add(attacker.Name + " TACKLED " + othertarget.Name + ". " + attacker.Name + " can take another action while their opponent is stunned!");
+
+                //Deal all the actual damage/effects here.
 
 
-            if (attacker.IsGrabbable == 0 && target.IsGrabbable == 0)
-            {
-                attacker.IsGrabbable += 1;
-                target.IsGrabbable += 1;
-            }
-            if (attacker.IsGrabbable == 0 && target.IsGrabbable == 1)
-            {
-                attacker.IsGrabbable += 1;
-            }
-            if (attacker.IsGrabbable == 1 && target.IsGrabbable == 0)
-            {
-                attacker.IsGrabbable += 1;
-                target.IsGrabbable += 2;
-            }
-            if (attacker.IsGrabbable == 2 && target.IsGrabbable == 1)
-            {
-                attacker.IsGrabbable -= 1;
-            }
-            if (attacker.IsGrabbable == 1 && target.IsGrabbable == 2)
-            {
-                attacker.IsGrabbable += 1;
-            }
-            if (attacker.IsGrabbable == 2 && target.IsGrabbable ==0)
-            {
-                attacker.IsGrabbable -= 1;
-                target.IsGrabbable += 1;
-            }
-            if (attacker.IsGrabbable == 0 && target.IsGrabbable == 2)
-            {
-                attacker.IsGrabbable += 2;
-            }
+                if (attacker.IsGrabbable == 0 && othertarget.IsGrabbable == 0)
+                {
+                    attacker.IsGrabbable += 1;
+                    othertarget.IsGrabbable += 1;
+                }
+                if (attacker.IsGrabbable == 0 && othertarget.IsGrabbable == 1)
+                {
+                    attacker.IsGrabbable += 1;
+                }
+                if (attacker.IsGrabbable == 1 && othertarget.IsGrabbable == 0)
+                {
+                    attacker.IsGrabbable += 1;
+                    othertarget.IsGrabbable += 2;
+                }
+                if (attacker.IsGrabbable == 2 && othertarget.IsGrabbable == 1)
+                {
+                    attacker.IsGrabbable -= 1;
+                }
+                if (attacker.IsGrabbable == 1 && othertarget.IsGrabbable == 2)
+                {
+                    attacker.IsGrabbable += 1;
+                }
+                if (attacker.IsGrabbable == 2 && othertarget.IsGrabbable == 0)
+                {
+                    attacker.IsGrabbable -= 1;
+                    othertarget.IsGrabbable += 1;
+                }
+                if (attacker.IsGrabbable == 0 && othertarget.IsGrabbable == 2)
+                {
+                    attacker.IsGrabbable += 2;
+                }
 
 
-            damage = Math.Max(damage, 0);
-            if (damage > 0) target.HitHp(damage); //This is to prevent the game displayin that the attacker did 0 damage, which is the normal case.
-            target.IsStunned = 2;
-            daze1.IsDazed = true;
-            daze2.IsDazed = true;
-            return true; //Successful attack, if we ever need to check that.
-        }
+                damage = Math.Max(damage, 0);
+                if (damage > 0) othertarget.HitHp(damage); //This is to prevent the game displayin that the attacker did 0 damage, which is the normal case.
+                othertarget.IsStunned = 2;
+                partner.IsDazed = true;
+                return true; //Successful attack, if we ever need to check that.
+                }
+            }
 
 
         public bool ActionThrow(int roll)
@@ -1022,195 +1397,388 @@ namespace RDVFSharp.Entities
         {
             var attacker = this;
             var target = TeamBattlefield.GetTarget();
+            var partner = TeamBattlefield.GetPartner();
+            var othertarget = TeamBattlefield.GetOther();
             var damage = Utils.RollDice(new List<int>() { 5, 5 }) - 1;
             damage *= 2;
-            damage += ( attacker.Strength + attacker.Dexterity );
+            damage += (attacker.Strength + attacker.Dexterity);
             damage += Math.Min(attacker.Strength, attacker.Spellpower);
             var requiredStam = 10;
             var difficulty = 10; //Base difficulty, rolls greater than this amount will hit.
 
-            //If opponent fumbled on their previous action they should become stunned.
-            if (target.Fumbled)
+
+            if (target.IsDead == false)
+
             {
-                target.IsDazed = true;
-                target.Fumbled = false;
-            }
-
-            if (attacker.IsRestrained) difficulty += 4; //Up the difficulty considerably if the attacker is restrained.
-            if (target.IsRestrained) difficulty += 4; //Ranged attacks during grapple are hard.
-            if (target.IsRestrained) difficulty -= 2; //Lower the difficulty slightly if the target is restrained.
-            if (attacker.IsFocused > 0) difficulty -= (int)Math.Ceiling((double)attacker.IsFocused / 10); //Lower the difficulty considerably if the attacker is focused
-
-            if (attacker.IsFocused > 0) damage += (int)Math.Ceiling((double)attacker.IsFocused / 10); //Focus gives bonus damage.
-
-            if (target.IsEvading > 0)
-            {//Evasion bonus from move/teleport. Only applies to one attack, then is reset to 0.
-                difficulty += (int)Math.Ceiling((double)target.IsEvading / 2);//Half effect on ranged attacks.
-                damage -= (int)Math.Ceiling((double)target.IsEvading / 2);
-                target.IsEvading = 0;
-            }
-            if (attacker.IsAggressive > 0)
-            {//Apply attack bonus from move/teleport then reset it.
-                difficulty -= attacker.IsAggressive;
-                damage += attacker.IsAggressive;
-                attacker.IsAggressive = 0;
-            }
-            if (target.IsGuarding > 0)
-            {//Evasion bonus from move/teleport. Only applies to one attack, then is reset to 0.
-                damage -= target.IsGuarding;
-            }
-
-            if (attacker.IsGuarding > 0)
-            {//Apply attack bonus from move/teleport then reset it.
-                attacker.IsGuarding = 0;
-            }
-
-            var critCheck = true;
-            if (attacker.Stamina < requiredStam)
-            {   //Not enough stamina-- reduced effect
-                critCheck = false;
-                damage *= attacker.Stamina / requiredStam;
-                difficulty += (int)Math.Ceiling((double)((requiredStam - attacker.Stamina) / requiredStam) * (20 - difficulty)); // Too tired? You're likely to miss.
-                TeamBattlefield.WindowController.Hint.Add(attacker.Name + " did not have enough stamina, and took penalties to the attack.");
-            }
-
-            attacker.HitStamina(requiredStam); //Now that stamina has been checked, reduce the attacker's stamina by the appopriate amount.
-
-            var attackTable = attacker.BuildActionTable(difficulty, target.Dexterity, attacker.Dexterity, target.Stamina, target.StaminaCap);
-            //If target can dodge the atatcker has to roll higher than the dodge value. Otherwise they need to roll higher than the miss value. We display the relevant value in the output.
-            TeamBattlefield.WindowController.Info.Add("Dice Roll Required: " + (attackTable.miss + 1));
-
-            if (roll <= attackTable.miss)
-            {   //Miss-- no effect.
-                TeamBattlefield.WindowController.Hit.Add(" FAILED!");
-                return false; //Failed attack, if we ever need to check that.
-            }
-
-            if (roll >= attackTable.crit && critCheck == true)
-            { //Critical Hit-- increased damage/effect, typically 3x damage if there are no other bonuses.
-                TeamBattlefield.WindowController.Hit.Add(" CRITICAL HIT! ");
-                TeamBattlefield.WindowController.Hint.Add(attacker.Name + " hit somewhere that really hurts!");
-                damage += 10;
-            }
-            else
-            { //Normal hit.
-                TeamBattlefield.WindowController.Hit.Add(" HIT! ");
-            }
-
-            //Deal all the actual damage/effects here.
-
-            if (TeamBattlefield.InGrabRange)
-            {// Succesful attacks will beat back the grabber before they can grab you, but not if you're already grappling.
-                if (!attacker.IsRestrained && !target.IsRestrained)
+                //If opponent fumbled on their previous action they should become stunned.
+                if (target.Fumbled)
                 {
-                    TeamBattlefield.InGrabRange = false;
-                    TeamBattlefield.WindowController.Hit.Add(attacker.Name + " distracted " + target.Name + " with the attack and was able to move out of grappling range!");
+                    target.IsDazed = true;
+                    target.Fumbled = false;
                 }
+
+                if (attacker.IsRestrained) difficulty += 4; //Up the difficulty considerably if the attacker is restrained.
+                if (target.IsRestrained) difficulty += 4; //Ranged attacks during grapple are hard.
+                if (target.IsRestrained) difficulty -= 2; //Lower the difficulty slightly if the target is restrained.
+                if (attacker.IsFocused > 0) difficulty -= (int)Math.Ceiling((double)attacker.IsFocused / 10); //Lower the difficulty considerably if the attacker is focused
+
+                if (attacker.IsFocused > 0) damage += (int)Math.Ceiling((double)attacker.IsFocused / 10); //Focus gives bonus damage.
+
+                if (target.IsEvading > 0)
+                {//Evasion bonus from move/teleport. Only applies to one attack, then is reset to 0.
+                    difficulty += (int)Math.Ceiling((double)target.IsEvading / 2);//Half effect on ranged attacks.
+                    damage -= (int)Math.Ceiling((double)target.IsEvading / 2);
+                    target.IsEvading = 0;
+                }
+                if (attacker.IsAggressive > 0)
+                {//Apply attack bonus from move/teleport then reset it.
+                    difficulty -= attacker.IsAggressive;
+                    damage += attacker.IsAggressive;
+                    attacker.IsAggressive = 0;
+                }
+                if (target.IsGuarding > 0)
+                {//Evasion bonus from move/teleport. Only applies to one attack, then is reset to 0.
+                    damage -= target.IsGuarding;
+                }
+
+                if (attacker.IsGuarding > 0)
+                {//Apply attack bonus from move/teleport then reset it.
+                    attacker.IsGuarding = 0;
+                }
+
+                var critCheck = true;
+                if (attacker.Stamina < requiredStam)
+                {   //Not enough stamina-- reduced effect
+                    critCheck = false;
+                    damage *= attacker.Stamina / requiredStam;
+                    difficulty += (int)Math.Ceiling((double)((requiredStam - attacker.Stamina) / requiredStam) * (20 - difficulty)); // Too tired? You're likely to miss.
+                    TeamBattlefield.WindowController.Hint.Add(attacker.Name + " did not have enough stamina, and took penalties to the attack.");
+                }
+
+                attacker.HitStamina(requiredStam); //Now that stamina has been checked, reduce the attacker's stamina by the appopriate amount.
+
+                var attackTable = attacker.BuildActionTable(difficulty, target.Dexterity, attacker.Dexterity, target.Stamina, target.StaminaCap);
+                //If target can dodge the atatcker has to roll higher than the dodge value. Otherwise they need to roll higher than the miss value. We display the relevant value in the output.
+                TeamBattlefield.WindowController.Info.Add("Dice Roll Required: " + (attackTable.miss + 1));
+
+                if (roll <= attackTable.miss)
+                {   //Miss-- no effect.
+                    TeamBattlefield.WindowController.Hit.Add(" FAILED!");
+                    return false; //Failed attack, if we ever need to check that.
+                }
+
+                if (roll >= attackTable.crit && critCheck == true)
+                { //Critical Hit-- increased damage/effect, typically 3x damage if there are no other bonuses.
+                    TeamBattlefield.WindowController.Hit.Add(" CRITICAL HIT! ");
+                    TeamBattlefield.WindowController.Hint.Add(attacker.Name + " hit somewhere that really hurts!");
+                    damage += 10;
+                }
+                else
+                { //Normal hit.
+                    TeamBattlefield.WindowController.Hit.Add(" HIT! ");
+                }
+
+                //Deal all the actual damage/effects here.
+
+                if (TeamBattlefield.InGrabRange)
+                {// Succesful attacks will beat back the grabber before they can grab you, but not if you're already grappling.
+                    if (!attacker.IsRestrained && !target.IsRestrained)
+                    {
+                        TeamBattlefield.InGrabRange = false;
+                        TeamBattlefield.WindowController.Hit.Add(attacker.Name + " distracted " + target.Name + " with the attack and was able to move out of grappling range!");
+                    }
+                }
+
+                //If you're being grappled and you hit the opponent that will make it a little easier to escape later on.
+                if (attacker.IsRestrained) attacker.IsEscaping += (int)Math.Floor((double)damage / 5);
+
+                damage = Math.Max(damage, 1);
+                target.HitHp(damage);
+                return true; //Successful attack, if we ever need to check that.
             }
 
-            //If you're being grappled and you hit the opponent that will make it a little easier to escape later on.
-            if (attacker.IsRestrained) attacker.IsEscaping += (int)Math.Floor((double)damage / 5);
+            else
 
-            damage = Math.Max(damage, 1);
-            target.HitHp(damage);
-            return true; //Successful attack, if we ever need to check that.
+            {
+                if (othertarget.Fumbled)
+                {
+                    othertarget.IsDazed = true;
+                    othertarget.Fumbled = false;
+                }
+
+                if (attacker.IsRestrained) difficulty += 4; //Up the difficulty considerably if the attacker is restrained.
+                if (othertarget.IsRestrained) difficulty += 4; //Ranged attacks during grapple are hard.
+                if (othertarget.IsRestrained) difficulty -= 2; //Lower the difficulty slightly if the target is restrained.
+                if (attacker.IsFocused > 0) difficulty -= (int)Math.Ceiling((double)attacker.IsFocused / 10); //Lower the difficulty considerably if the attacker is focused
+
+                if (attacker.IsFocused > 0) damage += (int)Math.Ceiling((double)attacker.IsFocused / 10); //Focus gives bonus damage.
+
+                if (othertarget.IsEvading > 0)
+                {//Evasion bonus from move/teleport. Only applies to one attack, then is reset to 0.
+                    difficulty += (int)Math.Ceiling((double)othertarget.IsEvading / 2);//Half effect on ranged attacks.
+                    damage -= (int)Math.Ceiling((double)othertarget.IsEvading / 2);
+                    othertarget.IsEvading = 0;
+                }
+                if (attacker.IsAggressive > 0)
+                {//Apply attack bonus from move/teleport then reset it.
+                    difficulty -= attacker.IsAggressive;
+                    damage += attacker.IsAggressive;
+                    attacker.IsAggressive = 0;
+                }
+                if (othertarget.IsGuarding > 0)
+                {//Evasion bonus from move/teleport. Only applies to one attack, then is reset to 0.
+                    damage -= othertarget.IsGuarding;
+                }
+
+                if (attacker.IsGuarding > 0)
+                {//Apply attack bonus from move/teleport then reset it.
+                    attacker.IsGuarding = 0;
+                }
+
+                var critCheck = true;
+                if (attacker.Stamina < requiredStam)
+                {   //Not enough stamina-- reduced effect
+                    critCheck = false;
+                    damage *= attacker.Stamina / requiredStam;
+                    difficulty += (int)Math.Ceiling((double)((requiredStam - attacker.Stamina) / requiredStam) * (20 - difficulty)); // Too tired? You're likely to miss.
+                    TeamBattlefield.WindowController.Hint.Add(attacker.Name + " did not have enough stamina, and took penalties to the attack.");
+                }
+
+                attacker.HitStamina(requiredStam); //Now that stamina has been checked, reduce the attacker's stamina by the appopriate amount.
+
+                var attackTable = attacker.BuildActionTable(difficulty, othertarget.Dexterity, attacker.Dexterity, othertarget.Stamina, othertarget.StaminaCap);
+                //If target can dodge the atatcker has to roll higher than the dodge value. Otherwise they need to roll higher than the miss value. We display the relevant value in the output.
+                TeamBattlefield.WindowController.Info.Add("Dice Roll Required: " + (attackTable.miss + 1));
+
+                if (roll <= attackTable.miss)
+                {   //Miss-- no effect.
+                    TeamBattlefield.WindowController.Hit.Add(" FAILED!");
+                    return false; //Failed attack, if we ever need to check that.
+                }
+
+                if (roll >= attackTable.crit && critCheck == true)
+                { //Critical Hit-- increased damage/effect, typically 3x damage if there are no other bonuses.
+                    TeamBattlefield.WindowController.Hit.Add(" CRITICAL HIT! ");
+                    TeamBattlefield.WindowController.Hint.Add(attacker.Name + " hit somewhere that really hurts!");
+                    damage += 10;
+                }
+                else
+                { //Normal hit.
+                    TeamBattlefield.WindowController.Hit.Add(" HIT! ");
+                }
+
+                //Deal all the actual damage/effects here.
+
+                if (TeamBattlefield.InGrabRange)
+                {// Succesful attacks will beat back the grabber before they can grab you, but not if you're already grappling.
+                    if (!attacker.IsRestrained && !othertarget.IsRestrained)
+                    {
+                        TeamBattlefield.InGrabRange = false;
+                        TeamBattlefield.WindowController.Hit.Add(attacker.Name + " distracted " + othertarget.Name + " with the attack and was able to move out of grappling range!");
+                    }
+                }
+
+                //If you're being grappled and you hit the opponent that will make it a little easier to escape later on.
+                if (attacker.IsRestrained) attacker.IsEscaping += (int)Math.Floor((double)damage / 5);
+
+                damage = Math.Max(damage, 1);
+                othertarget.HitHp(damage);
+                return true; //Successful attack, if we ever need to check that.
+            }
         }
 
         public bool ActionMagic(int roll)
         {
             var attacker = this;
             var target = TeamBattlefield.GetTarget();
+            var partner = TeamBattlefield.GetPartner();
+            var othertarget = TeamBattlefield.GetOther();
             var damage = Utils.RollDice(new List<int>() { 5, 5 }) - 1 + attacker.Spellpower;
             damage *= 2;
             damage += Math.Min(attacker.Strength, attacker.Spellpower);
             var requiredMana = 10;
             var difficulty = 8; //Base difficulty, rolls greater than this amount will hit.
 
-            //If opponent fumbled on their previous action they should become stunned.
-            if (target.Fumbled)
+
+            if (target.IsDead == false)
+
             {
-                target.IsDazed = true;
-                target.Fumbled = false;
-            }
-
-            if (attacker.IsRestrained) difficulty += 2; //Math.max(2, 4 + Math.floor((target.strength() - attacker.strength()) / 2)); //When grappled, up the difficulty based on the relative strength of the combatants. Minimum of +2 difficulty, maximum of +8.
-            if (target.IsRestrained) difficulty -= 4; //Lower the difficulty considerably if the target is restrained.
-            if (target.IsExposed > 0) difficulty -= 2; // If opponent left themself wide open after a failed strong attack, they'll be easier to hit.
-
-            if (target.IsEvading > 0)
-            {//Evasion bonus from move/teleport. Only applies to one attack, then is reset to 0.
-                difficulty += target.IsEvading;
-                damage -= target.IsEvading;
-                target.IsEvading = 0;
-            }
-            if (attacker.IsAggressive > 0)
-            {//Apply attack bonus from move/teleport then reset it.
-                difficulty -= attacker.IsAggressive;
-                damage += attacker.IsAggressive;
-                attacker.IsAggressive = 0;
-            }
-            if (target.IsGuarding > 0)
-            {//Evasion bonus from move/teleport. Only applies to one attack, then is reset to 0.
-                damage -= target.IsGuarding;
-            }
-            
-            if (attacker.IsGuarding > 0)
-            {//Apply attack bonus from move/teleport then reset it.
-                attacker.IsGuarding = 0;
-            }
-
-            var critCheck = true;
-            if (attacker.Mana < requiredMana)
-            {   //Not enough mana-- reduced effect
-                critCheck = false;
-                damage *= attacker.Mana / requiredMana;
-                difficulty += (int)Math.Ceiling((double)((requiredMana - attacker.Mana) / requiredMana) * (20 - difficulty)); // Too tired? You're likely to have your spell fizzle.
-                TeamBattlefield.WindowController.Hint.Add(attacker.Name + " did not have enough mana, and took penalties to the attack.");
-            }
-
-            attacker.HitMana(requiredMana); //Now that required mana has been checked, reduce the attacker's mana by the appopriate amount.
-
-            var attackTable = attacker.BuildActionTable(difficulty, target.Dexterity, attacker.Dexterity, target.Mana, target.ManaCap);
-            //If target can dodge the atatcker has to roll higher than the dodge value. Otherwise they need to roll higher than the miss value. We display the relevant value in the output.
-            TeamBattlefield.WindowController.Info.Add("Dice Roll Required: " + (attackTable.miss + 1));
-
-            if (roll <= attackTable.miss)
-            {   //Miss-- no effect.
-                TeamBattlefield.WindowController.Hit.Add(" FAILED!");
-                attacker.IsExposed += 4; //If the fighter misses a big attack, it leaves them open and they have to recover balance which gives the opponent a chance to strike.
-                TeamBattlefield.WindowController.Hint.Add(attacker.Name + " was left wide open by the failed attack and is now Exposed! " + target.Name + " has -2 difficulty to hit and can use Grab even if fighters are not in grappling range!");
-                return false; //Failed attack, if we ever need to check that.
-            }
-
-            if (roll >= attackTable.crit)
-            { //Critical Hit-- increased damage/effect, typically 3x damage if there are no other bonuses.
-                TeamBattlefield.WindowController.Hit.Add(" CRITICAL HIT! ");
-                TeamBattlefield.WindowController.Hint.Add(attacker.Name + " landed a particularly vicious blow!");
-                damage += 10;
-                TeamBattlefield.WindowController.Hint.Add("Critical Hit! " + attacker.Name + "'s magic worked abnormally well! " + target.Name + " is dazed and disoriented.");
-            }
-            else
-            { //Normal hit.
-                TeamBattlefield.WindowController.Hit.Add("MAGIC HIT! ");
-            }
-
-            //Deal all the actual damage/effects here.
-
-            if (TeamBattlefield.InGrabRange)
-            {// Succesful attacks will beat back the grabber before they can grab you, but not if you're already grappling.
-                if (!attacker.IsRestrained && !target.IsRestrained)
+                //If opponent fumbled on their previous action they should become stunned.
+                if (target.Fumbled)
                 {
-                    TeamBattlefield.InGrabRange = false;
-                    TeamBattlefield.WindowController.Hit.Add(attacker.Name + " distracted " + target.Name + " with the attack and was able to move out of grappling range!");
+                    target.IsDazed = true;
+                    target.Fumbled = false;
                 }
+
+                if (attacker.IsRestrained) difficulty += 2; //Math.max(2, 4 + Math.floor((target.strength() - attacker.strength()) / 2)); //When grappled, up the difficulty based on the relative strength of the combatants. Minimum of +2 difficulty, maximum of +8.
+                if (target.IsRestrained) difficulty -= 4; //Lower the difficulty considerably if the target is restrained.
+                if (target.IsExposed > 0) difficulty -= 2; // If opponent left themself wide open after a failed strong attack, they'll be easier to hit.
+
+                if (target.IsEvading > 0)
+                {//Evasion bonus from move/teleport. Only applies to one attack, then is reset to 0.
+                    difficulty += target.IsEvading;
+                    damage -= target.IsEvading;
+                    target.IsEvading = 0;
+                }
+                if (attacker.IsAggressive > 0)
+                {//Apply attack bonus from move/teleport then reset it.
+                    difficulty -= attacker.IsAggressive;
+                    damage += attacker.IsAggressive;
+                    attacker.IsAggressive = 0;
+                }
+                if (target.IsGuarding > 0)
+                {//Evasion bonus from move/teleport. Only applies to one attack, then is reset to 0.
+                    damage -= target.IsGuarding;
+                }
+
+                if (attacker.IsGuarding > 0)
+                {//Apply attack bonus from move/teleport then reset it.
+                    attacker.IsGuarding = 0;
+                }
+
+                var critCheck = true;
+                if (attacker.Mana < requiredMana)
+                {   //Not enough mana-- reduced effect
+                    critCheck = false;
+                    damage *= attacker.Mana / requiredMana;
+                    difficulty += (int)Math.Ceiling((double)((requiredMana - attacker.Mana) / requiredMana) * (20 - difficulty)); // Too tired? You're likely to have your spell fizzle.
+                    TeamBattlefield.WindowController.Hint.Add(attacker.Name + " did not have enough mana, and took penalties to the attack.");
+                }
+
+                attacker.HitMana(requiredMana); //Now that required mana has been checked, reduce the attacker's mana by the appopriate amount.
+
+                var attackTable = attacker.BuildActionTable(difficulty, target.Dexterity, attacker.Dexterity, target.Mana, target.ManaCap);
+                //If target can dodge the atatcker has to roll higher than the dodge value. Otherwise they need to roll higher than the miss value. We display the relevant value in the output.
+                TeamBattlefield.WindowController.Info.Add("Dice Roll Required: " + (attackTable.miss + 1));
+
+                if (roll <= attackTable.miss)
+                {   //Miss-- no effect.
+                    TeamBattlefield.WindowController.Hit.Add(" FAILED!");
+                    attacker.IsExposed += 4; //If the fighter misses a big attack, it leaves them open and they have to recover balance which gives the opponent a chance to strike.
+                    TeamBattlefield.WindowController.Hint.Add(attacker.Name + " was left wide open by the failed attack and is now Exposed! " + target.Name + " has -2 difficulty to hit and can use Grab even if fighters are not in grappling range!");
+                    return false; //Failed attack, if we ever need to check that.
+                }
+
+                if (roll >= attackTable.crit)
+                { //Critical Hit-- increased damage/effect, typically 3x damage if there are no other bonuses.
+                    TeamBattlefield.WindowController.Hit.Add(" CRITICAL HIT! ");
+                    TeamBattlefield.WindowController.Hint.Add(attacker.Name + " landed a particularly vicious blow!");
+                    damage += 10;
+                    TeamBattlefield.WindowController.Hint.Add("Critical Hit! " + attacker.Name + "'s magic worked abnormally well! " + target.Name + " is dazed and disoriented.");
+                }
+                else
+                { //Normal hit.
+                    TeamBattlefield.WindowController.Hit.Add("MAGIC HIT! ");
+                }
+
+                //Deal all the actual damage/effects here.
+
+                if (TeamBattlefield.InGrabRange)
+                {// Succesful attacks will beat back the grabber before they can grab you, but not if you're already grappling.
+                    if (!attacker.IsRestrained && !target.IsRestrained)
+                    {
+                        TeamBattlefield.InGrabRange = false;
+                        TeamBattlefield.WindowController.Hit.Add(attacker.Name + " distracted " + target.Name + " with the attack and was able to move out of grappling range!");
+                    }
+                }
+
+                //If you're being grappled and you hit the opponent that will make it a little easier to escape later on.
+                if (attacker.IsRestrained) attacker.IsEscaping += (int)Math.Floor((double)damage / 5);
+
+                damage = Math.Max(damage, 1);
+                target.HitHp(damage);
+                return true; //Successful attack, if we ever need to check that.
             }
 
-            //If you're being grappled and you hit the opponent that will make it a little easier to escape later on.
-            if (attacker.IsRestrained) attacker.IsEscaping += (int)Math.Floor((double)damage / 5);
+            else
+            {
+                //If opponent fumbled on their previous action they should become stunned.
+                if (othertarget.Fumbled)
+                {
+                    othertarget.IsDazed = true;
+                    othertarget.Fumbled = false;
+                }
 
-            damage = Math.Max(damage, 1);
-            target.HitHp(damage);
-            return true; //Successful attack, if we ever need to check that.
+                if (attacker.IsRestrained) difficulty += 2; //Math.max(2, 4 + Math.floor((othertarget.strength() - attacker.strength()) / 2)); //When grappled, up the difficulty based on the relative strength of the combatants. Minimum of +2 difficulty, maximum of +8.
+                if (othertarget.IsRestrained) difficulty -= 4; //Lower the difficulty considerably if the target is restrained.
+                if (othertarget.IsExposed > 0) difficulty -= 2; // If opponent left themself wide open after a failed strong attack, they'll be easier to hit.
+
+                if (othertarget.IsEvading > 0)
+                {//Evasion bonus from move/teleport. Only applies to one attack, then is reset to 0.
+                    difficulty += othertarget.IsEvading;
+                    damage -= othertarget.IsEvading;
+                    othertarget.IsEvading = 0;
+                }
+                if (attacker.IsAggressive > 0)
+                {//Apply attack bonus from move/teleport then reset it.
+                    difficulty -= attacker.IsAggressive;
+                    damage += attacker.IsAggressive;
+                    attacker.IsAggressive = 0;
+                }
+                if (othertarget.IsGuarding > 0)
+                {//Evasion bonus from move/teleport. Only applies to one attack, then is reset to 0.
+                    damage -= othertarget.IsGuarding;
+                }
+
+                if (attacker.IsGuarding > 0)
+                {//Apply attack bonus from move/teleport then reset it.
+                    attacker.IsGuarding = 0;
+                }
+
+                var critCheck = true;
+                if (attacker.Mana < requiredMana)
+                {   //Not enough mana-- reduced effect
+                    critCheck = false;
+                    damage *= attacker.Mana / requiredMana;
+                    difficulty += (int)Math.Ceiling((double)((requiredMana - attacker.Mana) / requiredMana) * (20 - difficulty)); // Too tired? You're likely to have your spell fizzle.
+                    TeamBattlefield.WindowController.Hint.Add(attacker.Name + " did not have enough mana, and took penalties to the attack.");
+                }
+
+                attacker.HitMana(requiredMana); //Now that required mana has been checked, reduce the attacker's mana by the appopriate amount.
+
+                var attackTable = attacker.BuildActionTable(difficulty, othertarget.Dexterity, attacker.Dexterity, othertarget.Mana, othertarget.ManaCap);
+                //If target can dodge the atatcker has to roll higher than the dodge value. Otherwise they need to roll higher than the miss value. We display the relevant value in the output.
+                TeamBattlefield.WindowController.Info.Add("Dice Roll Required: " + (attackTable.miss + 1));
+
+                if (roll <= attackTable.miss)
+                {   //Miss-- no effect.
+                    TeamBattlefield.WindowController.Hit.Add(" FAILED!");
+                    attacker.IsExposed += 4; //If the fighter misses a big attack, it leaves them open and they have to recover balance which gives the opponent a chance to strike.
+                    TeamBattlefield.WindowController.Hint.Add(attacker.Name + " was left wide open by the failed attack and is now Exposed! " + othertarget.Name + " has -2 difficulty to hit and can use Grab even if fighters are not in grappling range!");
+                    return false; //Failed attack, if we ever need to check that.
+                }
+
+                if (roll >= attackTable.crit)
+                { //Critical Hit-- increased damage/effect, typically 3x damage if there are no other bonuses.
+                    TeamBattlefield.WindowController.Hit.Add(" CRITICAL HIT! ");
+                    TeamBattlefield.WindowController.Hint.Add(attacker.Name + " landed a particularly vicious blow!");
+                    damage += 10;
+                    TeamBattlefield.WindowController.Hint.Add("Critical Hit! " + attacker.Name + "'s magic worked abnormally well! " + othertarget.Name + " is dazed and disoriented.");
+                }
+                else
+                { //Normal hit.
+                    TeamBattlefield.WindowController.Hit.Add("MAGIC HIT! ");
+                }
+
+                //Deal all the actual damage/effects here.
+
+                if (TeamBattlefield.InGrabRange)
+                {// Succesful attacks will beat back the grabber before they can grab you, but not if you're already grappling.
+                    if (!attacker.IsRestrained && !othertarget.IsRestrained)
+                    {
+                        TeamBattlefield.InGrabRange = false;
+                        TeamBattlefield.WindowController.Hit.Add(attacker.Name + " distracted " + othertarget.Name + " with the attack and was able to move out of grappling range!");
+                    }
+                }
+
+                //If you're being grappled and you hit the opponent that will make it a little easier to escape later on.
+                if (attacker.IsRestrained) attacker.IsEscaping += (int)Math.Floor((double)damage / 5);
+
+                damage = Math.Max(damage, 1);
+                othertarget.HitHp(damage);
+                return true; //Successful attack, if we ever need to check that.
+
+            }
         }
 
         
@@ -1218,13 +1786,17 @@ namespace RDVFSharp.Entities
         {
             var attacker = this;
             var target = TeamBattlefield.GetTarget();
+            var partner = TeamBattlefield.GetPartner();
+            var othertarget = TeamBattlefield.GetOther();
             var damage = Utils.RollDice(new List<int>() { 5, 5 }) - 1 + attacker.Spellpower;
             damage += Math.Min(attacker.Strength, attacker.Spellpower);
             var requiredMana = 5;
             var difficulty = 6; //Base difficulty, rolls greater than this amount will hit.
 
-            //If opponent fumbled on their previous action they should become stunned.
-            if (target.Fumbled)
+
+            if (target.IsDead == false)
+            {     //If opponent fumbled on their previous action they should become stunned.
+                if (target.Fumbled)
             {
                 target.IsDazed = true;
                 target.Fumbled = false;
@@ -1308,201 +1880,482 @@ namespace RDVFSharp.Entities
             target.HitHp(damage);
             target.HitMana(damage);
             return true; //Successful attack, if we ever need to check that.
+            }
+
+            else
+            {
+                //If opponent fumbled on their previous action they should become stunned.
+                if (othertarget.Fumbled)
+                {
+                    othertarget.IsDazed = true;
+                    othertarget.Fumbled = false;
+                }
+
+                if (attacker.IsRestrained) difficulty += 2;
+                if (othertarget.IsRestrained) difficulty -= 4; //Ranged attacks during grapple are hard, but Hex is now melee.
+                if (othertarget.IsExposed > 0) difficulty -= 2; // If opponent left themself wide open after a failed strong attack, they'll be easier to hit.
+
+
+                if (othertarget.IsEvading > 0)
+                {//Evasion bonus from move/teleport. Only applies to one attack, then is reset to 0.
+                    difficulty += othertarget.IsEvading;//Half effect on ranged attacks.
+                    damage -= othertarget.IsEvading;
+                    othertarget.IsEvading = 0;
+                }
+                if (attacker.IsAggressive > 0)
+                {//Apply attack bonus from move/teleport then reset it.
+                    difficulty -= attacker.IsAggressive;
+                    damage += attacker.IsAggressive;
+                    attacker.IsAggressive = 0;
+                }
+                if (othertarget.IsGuarding > 0)
+                {//Evasion bonus from move/teleport. Only applies to one attack, then is reset to 0.
+                    damage -= othertarget.IsGuarding;
+                }
+
+                if (attacker.IsGuarding > 0)
+                {//Apply attack bonus from move/teleport then reset it.
+                    attacker.IsGuarding = 0;
+                }
+
+                var critCheck = true;
+                if (attacker.Mana < requiredMana)
+                {   //Not enough mana-- reduced effect
+                    critCheck = false;
+                    damage *= attacker.Mana / requiredMana;
+                    difficulty += (int)Math.Ceiling((double)((requiredMana - attacker.Mana) / requiredMana) * (20 - difficulty)); // Too tired? You're likely to have your spell fizzle.
+                    TeamBattlefield.WindowController.Hint.Add(attacker.Name + " did not have enough mana, and took penalties to the attack.");
+                }
+
+                attacker.HitMana(requiredMana); //Now that required mana has been checked, reduce the attacker's mana by the appopriate amount.
+
+                var attackTable = attacker.BuildActionTable(difficulty, othertarget.Dexterity, attacker.Dexterity, othertarget.Mana, othertarget.ManaCap);
+                //If target can dodge the atatcker has to roll higher than the dodge value. Otherwise they need to roll higher than the miss value. We display the relevant value in the output.
+                TeamBattlefield.WindowController.Info.Add("Dice Roll Required: " + (attackTable.miss + 1));
+
+                if (roll <= attackTable.miss)
+                {   //Miss-- no effect.
+                    TeamBattlefield.WindowController.Hit.Add(" FAILED! ");
+                    return false; //Failed attack, if we ever need to check that.
+                }
+
+                if (roll >= attackTable.crit)
+                { //Critical Hit-- increased damage/effect, typically 3x damage if there are no other bonuses.
+                    TeamBattlefield.WindowController.Hit.Add(" CRITICAL HIT! ");
+                    TeamBattlefield.WindowController.Hint.Add(attacker.Name + " landed a particularly vicious blow!");
+                    damage += 10;
+                    TeamBattlefield.WindowController.Hint.Add("Critical Hit! " + attacker.Name + "'s magic worked abnormally well! " + othertarget.Name + " is dazed and disoriented.");
+                }
+                else
+                { //Normal hit.
+                    TeamBattlefield.WindowController.Hit.Add("MAGIC HIT! ");
+                }
+
+                //Deal all the actual damage/effects here.
+
+                if (TeamBattlefield.InGrabRange)
+                {// Succesful attacks will beat back the grabber before they can grab you, but not if you're already grappling.
+                    if (!attacker.IsRestrained && !othertarget.IsRestrained)
+                    {
+                        TeamBattlefield.InGrabRange = false;
+                        TeamBattlefield.WindowController.Hit.Add(attacker.Name + " distracted " + othertarget.Name + " with the attack and was able to move out of grappling range!");
+                    }
+                }
+
+                //If you're being grappled and you hit the opponent that will make it a little easier to escape later on.
+                if (attacker.IsRestrained) attacker.IsEscaping += (int)Math.Floor((double)damage / 5);
+
+                damage = Math.Max(damage, 1);
+                othertarget.HitHp(damage);
+                othertarget.HitMana(damage);
+                return true; //Successful attack, if we ever need to check that.
+
+            }
         }
 
         public bool ActionCurse(int roll)
         {
             var attacker = this;
             var target = TeamBattlefield.GetTarget();
+            var partner = TeamBattlefield.GetPartner();
+            var othertarget = TeamBattlefield.GetOther();
             var damage = 11 + attacker.Spellpower - attacker.Strength;
             damage *= 2;
             var requiredMana = 20;
             var difficulty = 10; //Base difficulty, rolls greater than this amount will hit.
 
-            //If opponent fumbled on their previous action they should become stunned.
-            if (target.Fumbled)
+            if (target.IsDead == false)
             {
-                target.IsDazed = true;
-                target.Fumbled = false;
-            }
-
-            if (attacker.IsRestrained) difficulty += 2; //Math.Max(2, 4 + (int)Math.Floor((double)(target.Strength - attacker.Strength) / 2)); //When grappled, up the difficulty based on the relative strength of the combatants. Minimum of +2 difficulty, maximum of +8.
-            if (target.IsRestrained) difficulty -= 4; //Ranged attacks during grapple are hard.
-            if (attacker.IsFocused > 0) difficulty -= (int)Math.Ceiling((double)attacker.IsFocused / 10); //Lower the difficulty if the attacker is focused
-
-            if (attacker.IsFocused > 0) damage += (int)Math.Ceiling((double)attacker.IsFocused / 10); //Focus gives bonus damage.
-
-            if (target.IsEvading > 0)
-            {//Evasion bonus from move/teleport. Only applies to one attack, then is reset to 0.
-                difficulty += (int)Math.Ceiling((double)target.IsEvading / 2);//Half effect on ranged attacks.
-                damage -= (int)Math.Ceiling((double)target.IsEvading / 2);
-                target.IsEvading = 0;
-            }
-            if (attacker.IsAggressive > 0)
-            {//Apply attack bonus from move/teleport then reset it.
-                difficulty -= attacker.IsAggressive;
-                damage += attacker.IsAggressive;
-                attacker.IsAggressive = 0;
-            }
-
-            if (target.IsGuarding > 0)
-            {//Evasion bonus from move/teleport. Only applies to one attack, then is reset to 0.
-                damage -= target.IsGuarding;
-            }
-            if (attacker.IsGuarding > 0)
-            {//Apply attack bonus from move/teleport then reset it.
-                attacker.IsGuarding = 0;
-            }
-            var critCheck = true;
-            if (attacker.Mana < requiredMana)
-            {   //Not enough mana-- reduced effect
-                critCheck = false;
-                damage *= attacker.Mana / requiredMana;
-                difficulty += (int)Math.Ceiling((double)((requiredMana - attacker.Mana) / requiredMana) * (20 - difficulty)); // Too tired? You're likely to have your spell fizzle.
-                TeamBattlefield.WindowController.Hint.Add(attacker.Name + " did not have enough mana, and took penalties to the attack.");
-            }
-
-            attacker.HitMana(requiredMana); //Now that required mana has been checked, reduce the attacker's mana by the appopriate amount.
-
-            var attackTable = attacker.BuildActionTable(difficulty, target.Dexterity, attacker.Dexterity, target.Mana, target.ManaCap);
-            //If target can dodge the atatcker has to roll higher than the dodge value. Otherwise they need to roll higher than the miss value. We display the relevant value in the output.
-            TeamBattlefield.WindowController.Info.Add("Dice Roll Required: " + (attackTable.miss + 1));
-
-            if (roll <= attackTable.miss)
-            {   //Miss-- no effect. Happens during grappling.
-                TeamBattlefield.WindowController.Hit.Add(" CURSE FAILED! Curse may not be used again by the attacker!");
-                attacker.CurseUsed += 10;
-                return false; //Failed attack, if we ever need to check that.
-            }
-
-            if (roll >= attackTable.crit)
-            { //Critical Hit-- increased damage/effect, typically 3x damage if there are no other bonuses.
-                TeamBattlefield.WindowController.Hit.Add(" CRITICAL HIT! ");
-                TeamBattlefield.WindowController.Hint.Add(attacker.Name + " landed a particularly vicious blow!");
-                damage += 10;
-                TeamBattlefield.WindowController.Hint.Add("Critical Hit! " + attacker.Name + "'s magic worked abnormally well! " + target.Name + " is dazed and disoriented.");
-            }
-            else
-            { //Normal hit.
-                TeamBattlefield.WindowController.Hit.Add("CURSE HIT! Curse may not be used again by the attacker!");
-            }
-
-            //Deal all the actual damage/effects here.
-
-            if (TeamBattlefield.InGrabRange)
-            {// Succesful attacks will beat back the grabber before they can grab you, but not if you're already grappling.
-                if (!attacker.IsRestrained && !target.IsRestrained)
+                //If opponent fumbled on their previous action they should become stunned.
+                if (target.Fumbled)
                 {
-                    TeamBattlefield.InGrabRange = false;
-                    TeamBattlefield.WindowController.Hit.Add(attacker.Name + " distracted " + target.Name + " with the attack and was able to move out of grappling range!");
+                    target.IsDazed = true;
+                    target.Fumbled = false;
                 }
+
+                if (attacker.IsRestrained) difficulty += 2; //Math.Max(2, 4 + (int)Math.Floor((double)(target.Strength - attacker.Strength) / 2)); //When grappled, up the difficulty based on the relative strength of the combatants. Minimum of +2 difficulty, maximum of +8.
+                if (target.IsRestrained) difficulty -= 4; //Ranged attacks during grapple are hard.
+                if (attacker.IsFocused > 0) difficulty -= (int)Math.Ceiling((double)attacker.IsFocused / 10); //Lower the difficulty if the attacker is focused
+
+                if (attacker.IsFocused > 0) damage += (int)Math.Ceiling((double)attacker.IsFocused / 10); //Focus gives bonus damage.
+
+                if (target.IsEvading > 0)
+                {//Evasion bonus from move/teleport. Only applies to one attack, then is reset to 0.
+                    difficulty += (int)Math.Ceiling((double)target.IsEvading / 2);//Half effect on ranged attacks.
+                    damage -= (int)Math.Ceiling((double)target.IsEvading / 2);
+                    target.IsEvading = 0;
+                }
+                if (attacker.IsAggressive > 0)
+                {//Apply attack bonus from move/teleport then reset it.
+                    difficulty -= attacker.IsAggressive;
+                    damage += attacker.IsAggressive;
+                    attacker.IsAggressive = 0;
+                }
+
+                if (target.IsGuarding > 0)
+                {//Evasion bonus from move/teleport. Only applies to one attack, then is reset to 0.
+                    damage -= target.IsGuarding;
+                }
+                if (attacker.IsGuarding > 0)
+                {//Apply attack bonus from move/teleport then reset it.
+                    attacker.IsGuarding = 0;
+                }
+                var critCheck = true;
+                if (attacker.Mana < requiredMana)
+                {   //Not enough mana-- reduced effect
+                    critCheck = false;
+                    damage *= attacker.Mana / requiredMana;
+                    difficulty += (int)Math.Ceiling((double)((requiredMana - attacker.Mana) / requiredMana) * (20 - difficulty)); // Too tired? You're likely to have your spell fizzle.
+                    TeamBattlefield.WindowController.Hint.Add(attacker.Name + " did not have enough mana, and took penalties to the attack.");
+                }
+
+                attacker.HitMana(requiredMana); //Now that required mana has been checked, reduce the attacker's mana by the appopriate amount.
+
+                var attackTable = attacker.BuildActionTable(difficulty, target.Dexterity, attacker.Dexterity, target.Mana, target.ManaCap);
+                //If target can dodge the atatcker has to roll higher than the dodge value. Otherwise they need to roll higher than the miss value. We display the relevant value in the output.
+                TeamBattlefield.WindowController.Info.Add("Dice Roll Required: " + (attackTable.miss + 1));
+
+                if (roll <= attackTable.miss)
+                {   //Miss-- no effect. Happens during grappling.
+                    TeamBattlefield.WindowController.Hit.Add(" CURSE FAILED! Curse may not be used again by the attacker!");
+                    attacker.CurseUsed += 10;
+                    return false; //Failed attack, if we ever need to check that.
+                }
+
+                if (roll >= attackTable.crit)
+                { //Critical Hit-- increased damage/effect, typically 3x damage if there are no other bonuses.
+                    TeamBattlefield.WindowController.Hit.Add(" CRITICAL HIT! ");
+                    TeamBattlefield.WindowController.Hint.Add(attacker.Name + " landed a particularly vicious blow!");
+                    damage += 10;
+                    TeamBattlefield.WindowController.Hint.Add("Critical Hit! " + attacker.Name + "'s magic worked abnormally well! " + target.Name + " is dazed and disoriented.");
+                }
+                else
+                { //Normal hit.
+                    TeamBattlefield.WindowController.Hit.Add("CURSE HIT! Curse may not be used again by the attacker!");
+                }
+
+                //Deal all the actual damage/effects here.
+
+                if (TeamBattlefield.InGrabRange)
+                {// Succesful attacks will beat back the grabber before they can grab you, but not if you're already grappling.
+                    if (!attacker.IsRestrained && !target.IsRestrained)
+                    {
+                        TeamBattlefield.InGrabRange = false;
+                        TeamBattlefield.WindowController.Hit.Add(attacker.Name + " distracted " + target.Name + " with the attack and was able to move out of grappling range!");
+                    }
+                }
+
+                //If you're being grappled and you hit the opponent that will make it a little easier to escape later on.
+                if (attacker.IsRestrained) attacker.IsEscaping += (int)Math.Floor((double)damage / 5);
+
+                damage = Math.Max(damage, 1);
+                target.HitHp(damage);
+                attacker.CurseUsed += 10;
+                return true; //Successful attack, if we ever need to check that.
             }
 
-            //If you're being grappled and you hit the opponent that will make it a little easier to escape later on.
-            if (attacker.IsRestrained) attacker.IsEscaping += (int)Math.Floor((double)damage / 5);
+            else
+            {
+                //If opponent fumbled on their previous action they should become stunned.
+                if (othertarget.Fumbled)
+                {
+                    othertarget.IsDazed = true;
+                    othertarget.Fumbled = false;
+                }
 
-            damage = Math.Max(damage, 1);
-            target.HitHp(damage);
-            attacker.CurseUsed += 10;
-            return true; //Successful attack, if we ever need to check that.
+                if (attacker.IsRestrained) difficulty += 2; //Math.Max(2, 4 + (int)Math.Floor((double)(othertarget.Strength - attacker.Strength) / 2)); //When grappled, up the difficulty based on the relative strength of the combatants. Minimum of +2 difficulty, maximum of +8.
+                if (othertarget.IsRestrained) difficulty -= 4; //Ranged attacks during grapple are hard.
+                if (attacker.IsFocused > 0) difficulty -= (int)Math.Ceiling((double)attacker.IsFocused / 10); //Lower the difficulty if the attacker is focused
+
+                if (attacker.IsFocused > 0) damage += (int)Math.Ceiling((double)attacker.IsFocused / 10); //Focus gives bonus damage.
+
+                if (othertarget.IsEvading > 0)
+                {//Evasion bonus from move/teleport. Only applies to one attack, then is reset to 0.
+                    difficulty += (int)Math.Ceiling((double)othertarget.IsEvading / 2);//Half effect on ranged attacks.
+                    damage -= (int)Math.Ceiling((double)othertarget.IsEvading / 2);
+                    othertarget.IsEvading = 0;
+                }
+                if (attacker.IsAggressive > 0)
+                {//Apply attack bonus from move/teleport then reset it.
+                    difficulty -= attacker.IsAggressive;
+                    damage += attacker.IsAggressive;
+                    attacker.IsAggressive = 0;
+                }
+
+                if (othertarget.IsGuarding > 0)
+                {//Evasion bonus from move/teleport. Only applies to one attack, then is reset to 0.
+                    damage -= othertarget.IsGuarding;
+                }
+                if (attacker.IsGuarding > 0)
+                {//Apply attack bonus from move/teleport then reset it.
+                    attacker.IsGuarding = 0;
+                }
+                var critCheck = true;
+                if (attacker.Mana < requiredMana)
+                {   //Not enough mana-- reduced effect
+                    critCheck = false;
+                    damage *= attacker.Mana / requiredMana;
+                    difficulty += (int)Math.Ceiling((double)((requiredMana - attacker.Mana) / requiredMana) * (20 - difficulty)); // Too tired? You're likely to have your spell fizzle.
+                    TeamBattlefield.WindowController.Hint.Add(attacker.Name + " did not have enough mana, and took penalties to the attack.");
+                }
+
+                attacker.HitMana(requiredMana); //Now that required mana has been checked, reduce the attacker's mana by the appopriate amount.
+
+                var attackTable = attacker.BuildActionTable(difficulty, othertarget.Dexterity, attacker.Dexterity, othertarget.Mana, othertarget.ManaCap);
+                //If target can dodge the atatcker has to roll higher than the dodge value. Otherwise they need to roll higher than the miss value. We display the relevant value in the output.
+                TeamBattlefield.WindowController.Info.Add("Dice Roll Required: " + (attackTable.miss + 1));
+
+                if (roll <= attackTable.miss)
+                {   //Miss-- no effect. Happens during grappling.
+                    TeamBattlefield.WindowController.Hit.Add(" CURSE FAILED! Curse may not be used again by the attacker!");
+                    attacker.CurseUsed += 10;
+                    return false; //Failed attack, if we ever need to check that.
+                }
+
+                if (roll >= attackTable.crit)
+                { //Critical Hit-- increased damage/effect, typically 3x damage if there are no other bonuses.
+                    TeamBattlefield.WindowController.Hit.Add(" CRITICAL HIT! ");
+                    TeamBattlefield.WindowController.Hint.Add(attacker.Name + " landed a particularly vicious blow!");
+                    damage += 10;
+                    TeamBattlefield.WindowController.Hint.Add("Critical Hit! " + attacker.Name + "'s magic worked abnormally well! " + othertarget.Name + " is dazed and disoriented.");
+                }
+                else
+                { //Normal hit.
+                    TeamBattlefield.WindowController.Hit.Add("CURSE HIT! Curse may not be used again by the attacker!");
+                }
+
+                //Deal all the actual damage/effects here.
+
+                if (TeamBattlefield.InGrabRange)
+                {// Succesful attacks will beat back the grabber before they can grab you, but not if you're already grappling.
+                    if (!attacker.IsRestrained && !othertarget.IsRestrained)
+                    {
+                        TeamBattlefield.InGrabRange = false;
+                        TeamBattlefield.WindowController.Hit.Add(attacker.Name + " distracted " + othertarget.Name + " with the attack and was able to move out of grappling range!");
+                    }
+                }
+
+                //If you're being grappled and you hit the opponent that will make it a little easier to escape later on.
+                if (attacker.IsRestrained) attacker.IsEscaping += (int)Math.Floor((double)damage / 5);
+
+                damage = Math.Max(damage, 1);
+                othertarget.HitHp(damage);
+                attacker.CurseUsed += 10;
+                return true; //Successful attack, if we ever need to check that.
+            }
         }
 
-        
+
         public bool ActionSpell(int roll)
         {
             var attacker = this;
             var target = TeamBattlefield.GetTarget();
+            var partner = TeamBattlefield.GetPartner();
+            var othertarget = TeamBattlefield.GetOther();
             var damage = Utils.RollDice(new List<int>() { 5, 5 }) - 1 + attacker.Spellpower;
             damage *= 2;
             damage += Math.Min(attacker.Strength, attacker.Spellpower);
             var requiredMana = 10;
             var difficulty = 10; //Base difficulty, rolls greater than this amount will hit.
 
-            //If opponent fumbled on their previous action they should become stunned.
-            if (target.Fumbled)
+
+            if (target.IsDead == false)
             {
-                target.IsDazed = true;
-                target.Fumbled = false;
-            }
-
-            if (attacker.IsRestrained) difficulty += 4; //Math.Max(2, 4 + (int)Math.Floor((double)(target.Strength - attacker.Strength) / 2)); //When grappled, up the difficulty based on the relative strength of the combatants. Minimum of +2 difficulty, maximum of +8.
-            if (target.IsRestrained) difficulty += 4; //Ranged attacks during grapple are hard.
-            if (attacker.IsFocused > 0) difficulty -= (int)Math.Ceiling((double)attacker.IsFocused / 10); //Lower the difficulty if the attacker is focused
-
-            if (attacker.IsFocused > 0) damage += (int)Math.Ceiling((double)attacker.IsFocused / 10); //Focus gives bonus damage.
-
-            if (target.IsEvading > 0)
-            {//Evasion bonus from move/teleport. Only applies to one attack, then is reset to 0.
-                difficulty += (int)Math.Ceiling((double)target.IsEvading / 2);//Half effect on ranged attacks.
-                damage -= (int)Math.Ceiling((double)target.IsEvading / 2);
-                target.IsEvading = 0;
-            }
-            if (attacker.IsAggressive > 0)
-            {//Apply attack bonus from move/teleport then reset it.
-                difficulty -= attacker.IsAggressive;
-                damage += attacker.IsAggressive;
-                attacker.IsAggressive = 0;
-            }
-
-            if (target.IsGuarding > 0)
-            {//Evasion bonus from move/teleport. Only applies to one attack, then is reset to 0.
-                damage -= target.IsGuarding;
-            }
-            if (attacker.IsGuarding > 0)
-            {//Apply attack bonus from move/teleport then reset it.
-                attacker.IsGuarding = 0;
-            }
-
-            var critCheck = true;
-            if (attacker.Mana < requiredMana)
-            {   //Not enough mana-- reduced effect
-                critCheck = false;
-                damage *= attacker.Mana / requiredMana;
-                difficulty += (int)Math.Ceiling((double)((requiredMana - attacker.Mana) / requiredMana) * (20 - difficulty)); // Too tired? You're likely to have your spell fizzle.
-                TeamBattlefield.WindowController.Hint.Add(attacker.Name + " did not have enough mana, and took penalties to the attack.");
-            }
-
-            attacker.HitMana(requiredMana); //Now that required mana has been checked, reduce the attacker's mana by the appopriate amount.
-
-            var attackTable = attacker.BuildActionTable(difficulty, target.Dexterity, attacker.Dexterity, target.Mana, target.ManaCap);
-            //If target can dodge the atatcker has to roll higher than the dodge value. Otherwise they need to roll higher than the miss value. We display the relevant value in the output.
-            TeamBattlefield.WindowController.Info.Add("Dice Roll Required: " + (attackTable.miss + 1));
-
-            if (roll <= attackTable.miss)
-            {   //Miss-- no effect. Happens during grappling.
-                TeamBattlefield.WindowController.Hit.Add(" FAILED! ");
-                return false; //Failed attack, if we ever need to check that.
-            }
-
-            if (roll >= attackTable.crit)
-            { //Critical Hit-- increased damage/effect, typically 3x damage if there are no other bonuses.
-                TeamBattlefield.WindowController.Hit.Add(" CRITICAL HIT! ");
-                TeamBattlefield.WindowController.Hint.Add(attacker.Name + " landed a particularly vicious blow!");
-                damage += 10;
-                TeamBattlefield.WindowController.Hint.Add("Critical Hit! " + attacker.Name + "'s magic worked abnormally well! " + target.Name + " is dazed and disoriented.");
-            }
-            else
-            { //Normal hit.
-                TeamBattlefield.WindowController.Hit.Add("MAGIC HIT! ");
-            }
-
-            //Deal all the actual damage/effects here.
-
-            if (TeamBattlefield.InGrabRange)
-            {// Succesful attacks will beat back the grabber before they can grab you, but not if you're already grappling.
-                if (!attacker.IsRestrained && !target.IsRestrained)
+                //If opponent fumbled on their previous action they should become stunned.
+                if (target.Fumbled)
                 {
-                    TeamBattlefield.InGrabRange = false;
-                    TeamBattlefield.WindowController.Hit.Add(attacker.Name + " distracted " + target.Name + " with the attack and was able to move out of grappling range!");
+                    target.IsDazed = true;
+                    target.Fumbled = false;
                 }
+
+                if (attacker.IsRestrained) difficulty += 4; //Math.Max(2, 4 + (int)Math.Floor((double)(target.Strength - attacker.Strength) / 2)); //When grappled, up the difficulty based on the relative strength of the combatants. Minimum of +2 difficulty, maximum of +8.
+                if (target.IsRestrained) difficulty += 4; //Ranged attacks during grapple are hard.
+                if (attacker.IsFocused > 0) difficulty -= (int)Math.Ceiling((double)attacker.IsFocused / 10); //Lower the difficulty if the attacker is focused
+
+                if (attacker.IsFocused > 0) damage += (int)Math.Ceiling((double)attacker.IsFocused / 10); //Focus gives bonus damage.
+
+                if (target.IsEvading > 0)
+                {//Evasion bonus from move/teleport. Only applies to one attack, then is reset to 0.
+                    difficulty += (int)Math.Ceiling((double)target.IsEvading / 2);//Half effect on ranged attacks.
+                    damage -= (int)Math.Ceiling((double)target.IsEvading / 2);
+                    target.IsEvading = 0;
+                }
+                if (attacker.IsAggressive > 0)
+                {//Apply attack bonus from move/teleport then reset it.
+                    difficulty -= attacker.IsAggressive;
+                    damage += attacker.IsAggressive;
+                    attacker.IsAggressive = 0;
+                }
+
+                if (target.IsGuarding > 0)
+                {//Evasion bonus from move/teleport. Only applies to one attack, then is reset to 0.
+                    damage -= target.IsGuarding;
+                }
+                if (attacker.IsGuarding > 0)
+                {//Apply attack bonus from move/teleport then reset it.
+                    attacker.IsGuarding = 0;
+                }
+
+                var critCheck = true;
+                if (attacker.Mana < requiredMana)
+                {   //Not enough mana-- reduced effect
+                    critCheck = false;
+                    damage *= attacker.Mana / requiredMana;
+                    difficulty += (int)Math.Ceiling((double)((requiredMana - attacker.Mana) / requiredMana) * (20 - difficulty)); // Too tired? You're likely to have your spell fizzle.
+                    TeamBattlefield.WindowController.Hint.Add(attacker.Name + " did not have enough mana, and took penalties to the attack.");
+                }
+
+                attacker.HitMana(requiredMana); //Now that required mana has been checked, reduce the attacker's mana by the appopriate amount.
+
+                var attackTable = attacker.BuildActionTable(difficulty, target.Dexterity, attacker.Dexterity, target.Mana, target.ManaCap);
+                //If target can dodge the atatcker has to roll higher than the dodge value. Otherwise they need to roll higher than the miss value. We display the relevant value in the output.
+                TeamBattlefield.WindowController.Info.Add("Dice Roll Required: " + (attackTable.miss + 1));
+
+                if (roll <= attackTable.miss)
+                {   //Miss-- no effect. Happens during grappling.
+                    TeamBattlefield.WindowController.Hit.Add(" FAILED! ");
+                    return false; //Failed attack, if we ever need to check that.
+                }
+
+                if (roll >= attackTable.crit)
+                { //Critical Hit-- increased damage/effect, typically 3x damage if there are no other bonuses.
+                    TeamBattlefield.WindowController.Hit.Add(" CRITICAL HIT! ");
+                    TeamBattlefield.WindowController.Hint.Add(attacker.Name + " landed a particularly vicious blow!");
+                    damage += 10;
+                    TeamBattlefield.WindowController.Hint.Add("Critical Hit! " + attacker.Name + "'s magic worked abnormally well! " + target.Name + " is dazed and disoriented.");
+                }
+                else
+                { //Normal hit.
+                    TeamBattlefield.WindowController.Hit.Add("MAGIC HIT! ");
+                }
+
+                //Deal all the actual damage/effects here.
+
+                if (TeamBattlefield.InGrabRange)
+                {// Succesful attacks will beat back the grabber before they can grab you, but not if you're already grappling.
+                    if (!attacker.IsRestrained && !target.IsRestrained)
+                    {
+                        TeamBattlefield.InGrabRange = false;
+                        TeamBattlefield.WindowController.Hit.Add(attacker.Name + " distracted " + target.Name + " with the attack and was able to move out of grappling range!");
+                    }
+                }
+
+                //If you're being grappled and you hit the opponent that will make it a little easier to escape later on.
+                if (attacker.IsRestrained) attacker.IsEscaping += (int)Math.Floor((double)damage / 5);
+
+                damage = Math.Max(damage, 1);
+                target.HitHp(damage);
+                return true; //Successful attack, if we ever need to check that.
             }
 
-            //If you're being grappled and you hit the opponent that will make it a little easier to escape later on.
-            if (attacker.IsRestrained) attacker.IsEscaping += (int)Math.Floor((double)damage / 5);
+            else
+            {
+                //If opponent fumbled on their previous action they should become stunned.
+                if (othertarget.Fumbled)
+                {
+                    othertarget.IsDazed = true;
+                    othertarget.Fumbled = false;
+                }
 
-            damage = Math.Max(damage, 1);
-            target.HitHp(damage);
-            return true; //Successful attack, if we ever need to check that.
+                if (attacker.IsRestrained) difficulty += 4; //Math.Max(2, 4 + (int)Math.Floor((double)(othertarget.Strength - attacker.Strength) / 2)); //When grappled, up the difficulty based on the relative strength of the combatants. Minimum of +2 difficulty, maximum of +8.
+                if (othertarget.IsRestrained) difficulty += 4; //Ranged attacks during grapple are hard.
+                if (attacker.IsFocused > 0) difficulty -= (int)Math.Ceiling((double)attacker.IsFocused / 10); //Lower the difficulty if the attacker is focused
+
+                if (attacker.IsFocused > 0) damage += (int)Math.Ceiling((double)attacker.IsFocused / 10); //Focus gives bonus damage.
+
+                if (othertarget.IsEvading > 0)
+                {//Evasion bonus from move/teleport. Only applies to one attack, then is reset to 0.
+                    difficulty += (int)Math.Ceiling((double)othertarget.IsEvading / 2);//Half effect on ranged attacks.
+                    damage -= (int)Math.Ceiling((double)othertarget.IsEvading / 2);
+                    othertarget.IsEvading = 0;
+                }
+                if (attacker.IsAggressive > 0)
+                {//Apply attack bonus from move/teleport then reset it.
+                    difficulty -= attacker.IsAggressive;
+                    damage += attacker.IsAggressive;
+                    attacker.IsAggressive = 0;
+                }
+
+                if (othertarget.IsGuarding > 0)
+                {//Evasion bonus from move/teleport. Only applies to one attack, then is reset to 0.
+                    damage -= othertarget.IsGuarding;
+                }
+                if (attacker.IsGuarding > 0)
+                {//Apply attack bonus from move/teleport then reset it.
+                    attacker.IsGuarding = 0;
+                }
+
+                var critCheck = true;
+                if (attacker.Mana < requiredMana)
+                {   //Not enough mana-- reduced effect
+                    critCheck = false;
+                    damage *= attacker.Mana / requiredMana;
+                    difficulty += (int)Math.Ceiling((double)((requiredMana - attacker.Mana) / requiredMana) * (20 - difficulty)); // Too tired? You're likely to have your spell fizzle.
+                    TeamBattlefield.WindowController.Hint.Add(attacker.Name + " did not have enough mana, and took penalties to the attack.");
+                }
+
+                attacker.HitMana(requiredMana); //Now that required mana has been checked, reduce the attacker's mana by the appopriate amount.
+
+                var attackTable = attacker.BuildActionTable(difficulty, othertarget.Dexterity, attacker.Dexterity, othertarget.Mana, othertarget.ManaCap);
+                //If target can dodge the atatcker has to roll higher than the dodge value. Otherwise they need to roll higher than the miss value. We display the relevant value in the output.
+                TeamBattlefield.WindowController.Info.Add("Dice Roll Required: " + (attackTable.miss + 1));
+
+                if (roll <= attackTable.miss)
+                {   //Miss-- no effect. Happens during grappling.
+                    TeamBattlefield.WindowController.Hit.Add(" FAILED! ");
+                    return false; //Failed attack, if we ever need to check that.
+                }
+
+                if (roll >= attackTable.crit)
+                { //Critical Hit-- increased damage/effect, typically 3x damage if there are no other bonuses.
+                    TeamBattlefield.WindowController.Hit.Add(" CRITICAL HIT! ");
+                    TeamBattlefield.WindowController.Hint.Add(attacker.Name + " landed a particularly vicious blow!");
+                    damage += 10;
+                    TeamBattlefield.WindowController.Hint.Add("Critical Hit! " + attacker.Name + "'s magic worked abnormally well! " + othertarget.Name + " is dazed and disoriented.");
+                }
+                else
+                { //Normal hit.
+                    TeamBattlefield.WindowController.Hit.Add("MAGIC HIT! ");
+                }
+
+                //Deal all the actual damage/effects here.
+
+                if (TeamBattlefield.InGrabRange)
+                {// Succesful attacks will beat back the grabber before they can grab you, but not if you're already grappling.
+                    if (!attacker.IsRestrained && !othertarget.IsRestrained)
+                    {
+                        TeamBattlefield.InGrabRange = false;
+                        TeamBattlefield.WindowController.Hit.Add(attacker.Name + " distracted " + othertarget.Name + " with the attack and was able to move out of grappling range!");
+                    }
+                }
+
+                //If you're being grappled and you hit the opponent that will make it a little easier to escape later on.
+                if (attacker.IsRestrained) attacker.IsEscaping += (int)Math.Floor((double)damage / 5);
+
+                damage = Math.Max(damage, 1);
+                othertarget.HitHp(damage);
+                return true; //Successful attack, if we ever need to check that.
+            }
         }
 
 
@@ -1511,98 +2364,191 @@ namespace RDVFSharp.Entities
             var attacker = this;
             var target = TeamBattlefield.GetTarget();
             var othertarget = TeamBattlefield.GetOther();
+            var partner = TeamBattlefield.GetPartner();
             var damage = Utils.RollDice(new List<int>() { 5, 5 }) - 1 + attacker.Spellpower;
             damage *= 2;
             damage += Math.Min(attacker.Strength, attacker.Spellpower);
             var requiredMana = 25;
             var difficulty = 10; //Base difficulty, rolls greater than this amount will hit.
 
-            //If opponent fumbled on their previous action they should become stunned.
-            if (target.Fumbled)
-            {
-                target.IsDazed = true;
-                target.Fumbled = false;
-            }
+            if (target.IsDead == false)
 
-            if (attacker.IsRestrained) difficulty += 4; //Math.Max(2, 4 + (int)Math.Floor((double)(target.Strength - attacker.Strength) / 2)); //When grappled, up the difficulty based on the relative strength of the combatants. Minimum of +2 difficulty, maximum of +8.
-            if (target.IsRestrained) difficulty += 4; //Ranged attacks during grapple are hard.
-            if (attacker.IsFocused > 0) difficulty -= (int)Math.Ceiling((double)attacker.IsFocused / 10); //Lower the difficulty if the attacker is focused
-
-            if (attacker.IsFocused > 0) damage += (int)Math.Ceiling((double)attacker.IsFocused / 10); //Focus gives bonus damage.
-
-            if (target.IsEvading > 0)
-            {//Evasion bonus from move/teleport. Only applies to one attack, then is reset to 0.
-                difficulty += (int)Math.Ceiling((double)target.IsEvading / 2);//Half effect on ranged attacks.
-                damage -= (int)Math.Ceiling((double)target.IsEvading / 2);
-                target.IsEvading = 0;
-            }
-            if (attacker.IsAggressive > 0)
-            {//Apply attack bonus from move/teleport then reset it.
-                difficulty -= attacker.IsAggressive;
-                damage += attacker.IsAggressive;
-                attacker.IsAggressive = 0;
-            }
-
-            if (target.IsGuarding > 0)
-            {//Evasion bonus from move/teleport. Only applies to one attack, then is reset to 0.
-                damage -= target.IsGuarding;
-            }
-            if (attacker.IsGuarding > 0)
-            {//Apply attack bonus from move/teleport then reset it.
-                attacker.IsGuarding = 0;
-            }
-
-            var critCheck = true;
-            if (attacker.Mana < requiredMana)
-            {   //Not enough mana-- reduced effect
-                critCheck = false;
-                damage *= attacker.Mana / requiredMana;
-                difficulty += (int)Math.Ceiling((double)((requiredMana - attacker.Mana) / requiredMana) * (20 - difficulty)); // Too tired? You're likely to have your spell fizzle.
-                TeamBattlefield.WindowController.Hint.Add(attacker.Name + " did not have enough mana, and took penalties to the attack.");
-            }
-
-            attacker.HitMana(requiredMana); //Now that required mana has been checked, reduce the attacker's mana by the appopriate amount.
-
-            var attackTable = attacker.BuildActionTable(difficulty, target.Dexterity, attacker.Dexterity, target.Mana, target.ManaCap);
-            //If target can dodge the atatcker has to roll higher than the dodge value. Otherwise they need to roll higher than the miss value. We display the relevant value in the output.
-            TeamBattlefield.WindowController.Info.Add("Dice Roll Required: " + (attackTable.miss + 1));
-
-            if (roll <= attackTable.miss)
-            {   //Miss-- no effect. Happens during grappling.
-                TeamBattlefield.WindowController.Hit.Add(" FAILED! ");
-                return false; //Failed attack, if we ever need to check that.
-            }
-
-            if (roll >= attackTable.crit)
-            { //Critical Hit-- increased damage/effect, typically 3x damage if there are no other bonuses.
-                TeamBattlefield.WindowController.Hit.Add(" CRITICAL HIT! ");
-                TeamBattlefield.WindowController.Hint.Add(attacker.Name + " landed a particularly vicious blow!");
-                damage += 10;
-                TeamBattlefield.WindowController.Hint.Add("Critical Hit! " + attacker.Name + "'s magic worked abnormally well! " + target.Name + " is dazed and disoriented.");
-            }
-            else
-            { //Normal hit.
-                TeamBattlefield.WindowController.Hit.Add("MAGIC HIT! ");
-            }
-
-            //Deal all the actual damage/effects here.
-
-            if (TeamBattlefield.InGrabRange)
-            {// Succesful attacks will beat back the grabber before they can grab you, but not if you're already grappling.
-                if (!attacker.IsRestrained && !target.IsRestrained)
+            {//If opponent fumbled on their previous action they should become stunned.
+                if (target.Fumbled)
                 {
-                    TeamBattlefield.InGrabRange = false;
-                    TeamBattlefield.WindowController.Hit.Add(attacker.Name + " distracted " + target.Name + " with the attack and was able to move out of grappling range!");
+                    target.IsDazed = true;
+                    target.Fumbled = false;
                 }
+
+                if (attacker.IsRestrained) difficulty += 4; //Math.Max(2, 4 + (int)Math.Floor((double)(target.Strength - attacker.Strength) / 2)); //When grappled, up the difficulty based on the relative strength of the combatants. Minimum of +2 difficulty, maximum of +8.
+                if (target.IsRestrained) difficulty += 4; //Ranged attacks during grapple are hard.
+                if (attacker.IsFocused > 0) difficulty -= (int)Math.Ceiling((double)attacker.IsFocused / 10); //Lower the difficulty if the attacker is focused
+
+                if (attacker.IsFocused > 0) damage += (int)Math.Ceiling((double)attacker.IsFocused / 10); //Focus gives bonus damage.
+
+                if (target.IsEvading > 0)
+                {//Evasion bonus from move/teleport. Only applies to one attack, then is reset to 0.
+                    difficulty += (int)Math.Ceiling((double)target.IsEvading / 2);//Half effect on ranged attacks.
+                    damage -= (int)Math.Ceiling((double)target.IsEvading / 2);
+                    target.IsEvading = 0;
+                }
+                if (attacker.IsAggressive > 0)
+                {//Apply attack bonus from move/teleport then reset it.
+                    difficulty -= attacker.IsAggressive;
+                    damage += attacker.IsAggressive;
+                    attacker.IsAggressive = 0;
+                }
+
+                if (target.IsGuarding > 0)
+                {//Evasion bonus from move/teleport. Only applies to one attack, then is reset to 0.
+                    damage -= target.IsGuarding;
+                }
+                if (attacker.IsGuarding > 0)
+                {//Apply attack bonus from move/teleport then reset it.
+                    attacker.IsGuarding = 0;
+                }
+
+                var critCheck = true;
+                if (attacker.Mana < requiredMana)
+                {   //Not enough mana-- reduced effect
+                    critCheck = false;
+                    damage *= attacker.Mana / requiredMana;
+                    difficulty += (int)Math.Ceiling((double)((requiredMana - attacker.Mana) / requiredMana) * (20 - difficulty)); // Too tired? You're likely to have your spell fizzle.
+                    TeamBattlefield.WindowController.Hint.Add(attacker.Name + " did not have enough mana, and took penalties to the attack.");
+                }
+
+                attacker.HitMana(requiredMana); //Now that required mana has been checked, reduce the attacker's mana by the appopriate amount.
+
+                var attackTable = attacker.BuildActionTable(difficulty, target.Dexterity, attacker.Dexterity, target.Mana, target.ManaCap);
+                //If target can dodge the atatcker has to roll higher than the dodge value. Otherwise they need to roll higher than the miss value. We display the relevant value in the output.
+                TeamBattlefield.WindowController.Info.Add("Dice Roll Required: " + (attackTable.miss + 1));
+
+                if (roll <= attackTable.miss)
+                {   //Miss-- no effect. Happens during grappling.
+                    TeamBattlefield.WindowController.Hit.Add(" FAILED! ");
+                    return false; //Failed attack, if we ever need to check that.
+                }
+
+                if (roll >= attackTable.crit)
+                { //Critical Hit-- increased damage/effect, typically 3x damage if there are no other bonuses.
+                    TeamBattlefield.WindowController.Hit.Add(" CRITICAL HIT! ");
+                    TeamBattlefield.WindowController.Hint.Add(attacker.Name + " landed a particularly vicious blow!");
+                    damage += 10;
+                    TeamBattlefield.WindowController.Hint.Add("Critical Hit! " + attacker.Name + "'s magic worked abnormally well! " + target.Name + " is dazed and disoriented.");
+                }
+                else
+                { //Normal hit.
+                    TeamBattlefield.WindowController.Hit.Add("MAGIC HIT! ");
+                }
+
+                //Deal all the actual damage/effects here.
+
+                if (TeamBattlefield.InGrabRange)
+                {// Succesful attacks will beat back the grabber before they can grab you, but not if you're already grappling.
+                    if (!attacker.IsRestrained && !target.IsRestrained)
+                    {
+                        TeamBattlefield.InGrabRange = false;
+                        TeamBattlefield.WindowController.Hit.Add(attacker.Name + " distracted " + target.Name + " with the attack and was able to move out of grappling range!");
+                    }
+                }
+
+                //If you're being grappled and you hit the opponent that will make it a little easier to escape later on.
+                if (attacker.IsRestrained) attacker.IsEscaping += (int)Math.Floor((double)damage / 5);
+
+                damage = Math.Max(damage, 1);
+                target.HitHp(damage);
+                othertarget.HitHp(damage / 2);
+                return true; //Successful attack, if we ever need to check that.
             }
 
-            //If you're being grappled and you hit the opponent that will make it a little easier to escape later on.
-            if (attacker.IsRestrained) attacker.IsEscaping += (int)Math.Floor((double)damage / 5);
+            else
+            { //If opponent fumbled on their previous action they should become stunned.
+                if (othertarget.Fumbled)
+                {
+                    othertarget.IsDazed = true;
+                    othertarget.Fumbled = false;
+                }
 
-            damage = Math.Max(damage, 1);
-            target.HitHp(damage);
-            othertarget.HitHp(damage / 2);
-            return true; //Successful attack, if we ever need to check that.
+                if (attacker.IsRestrained) difficulty += 4; //Math.Max(2, 4 + (int)Math.Floor((double)(othertarget.Strength - attacker.Strength) / 2)); //When grappled, up the difficulty based on the relative strength of the combatants. Minimum of +2 difficulty, maximum of +8.
+                if (othertarget.IsRestrained) difficulty += 4; //Ranged attacks during grapple are hard.
+                if (attacker.IsFocused > 0) difficulty -= (int)Math.Ceiling((double)attacker.IsFocused / 10); //Lower the difficulty if the attacker is focused
+
+                if (attacker.IsFocused > 0) damage += (int)Math.Ceiling((double)attacker.IsFocused / 10); //Focus gives bonus damage.
+
+                if (othertarget.IsEvading > 0)
+                {//Evasion bonus from move/teleport. Only applies to one attack, then is reset to 0.
+                    difficulty += (int)Math.Ceiling((double)othertarget.IsEvading / 2);//Half effect on ranged attacks.
+                    damage -= (int)Math.Ceiling((double)othertarget.IsEvading / 2);
+                    othertarget.IsEvading = 0;
+                }
+                if (attacker.IsAggressive > 0)
+                {//Apply attack bonus from move/teleport then reset it.
+                    difficulty -= attacker.IsAggressive;
+                    damage += attacker.IsAggressive;
+                    attacker.IsAggressive = 0;
+                }
+
+                if (othertarget.IsGuarding > 0)
+                {//Evasion bonus from move/teleport. Only applies to one attack, then is reset to 0.
+                    damage -= othertarget.IsGuarding;
+                }
+                if (attacker.IsGuarding > 0)
+                {//Apply attack bonus from move/teleport then reset it.
+                    attacker.IsGuarding = 0;
+                }
+
+                var critCheck = true;
+                if (attacker.Mana < requiredMana)
+                {   //Not enough mana-- reduced effect
+                    critCheck = false;
+                    damage *= attacker.Mana / requiredMana;
+                    difficulty += (int)Math.Ceiling((double)((requiredMana - attacker.Mana) / requiredMana) * (20 - difficulty)); // Too tired? You're likely to have your spell fizzle.
+                    TeamBattlefield.WindowController.Hint.Add(attacker.Name + " did not have enough mana, and took penalties to the attack.");
+                }
+
+                attacker.HitMana(requiredMana); //Now that required mana has been checked, reduce the attacker's mana by the appopriate amount.
+
+                var attackTable = attacker.BuildActionTable(difficulty, othertarget.Dexterity, attacker.Dexterity, othertarget.Mana, othertarget.ManaCap);
+                //If target can dodge the atatcker has to roll higher than the dodge value. Otherwise they need to roll higher than the miss value. We display the relevant value in the output.
+                TeamBattlefield.WindowController.Info.Add("Dice Roll Required: " + (attackTable.miss + 1));
+
+                if (roll <= attackTable.miss)
+                {   //Miss-- no effect. Happens during grappling.
+                    TeamBattlefield.WindowController.Hit.Add(" FAILED! ");
+                    return false; //Failed attack, if we ever need to check that.
+                }
+
+                if (roll >= attackTable.crit)
+                { //Critical Hit-- increased damage/effect, typically 3x damage if there are no other bonuses.
+                    TeamBattlefield.WindowController.Hit.Add(" CRITICAL HIT! ");
+                    TeamBattlefield.WindowController.Hint.Add(attacker.Name + " landed a particularly vicious blow!");
+                    damage += 10;
+                    TeamBattlefield.WindowController.Hint.Add("Critical Hit! " + attacker.Name + "'s magic worked abnormally well! " + othertarget.Name + " is dazed and disoriented.");
+                }
+                else
+                { //Normal hit.
+                    TeamBattlefield.WindowController.Hit.Add("MAGIC HIT! ");
+                }
+
+                //Deal all the actual damage/effects here.
+
+                if (TeamBattlefield.InGrabRange)
+                {// Succesful attacks will beat back the grabber before they can grab you, but not if you're already grappling.
+                    if (!attacker.IsRestrained && !othertarget.IsRestrained)
+                    {
+                        TeamBattlefield.InGrabRange = false;
+                        TeamBattlefield.WindowController.Hit.Add(attacker.Name + " distracted " + othertarget.Name + " with the attack and was able to move out of grappling range!");
+                    }
+                }
+
+                //If you're being grappled and you hit the opponent that will make it a little easier to escape later on.
+                if (attacker.IsRestrained) attacker.IsEscaping += (int)Math.Floor((double)damage / 5);
+
+                damage = Math.Max(damage, 1);
+                othertarget.HitHp(damage);
+                target.HitHp(damage / 2);
+                return true; //Successful attack, if we ever need to check that.
+            }
         }
 
         public bool ActionCleave(int roll)
@@ -1610,6 +2556,7 @@ namespace RDVFSharp.Entities
             var attacker = this;
             var target = TeamBattlefield.GetTarget();
             var othertarget = TeamBattlefield.GetOther();
+            var partner = TeamBattlefield.GetPartner();
             var damage = Utils.RollDice(new List<int>() { 5, 5 }) - 1 + attacker.Strength;
             damage *= 2;
             damage += Math.Min(attacker.Strength, attacker.Spellpower);
@@ -1704,13 +2651,320 @@ namespace RDVFSharp.Entities
             return true; //Successful attack, if we ever need to check that.
         }
 
+        public bool ActionDot(int roll)
+        {
+            var attacker = this;
+            var target = TeamBattlefield.GetTarget();
+            var partner = TeamBattlefield.GetPartner();
+            var othertarget = TeamBattlefield.GetOther();
+            var requiredMana = 5;
+            var difficulty = 7; //Base difficulty, rolls greater than this amount will hit.
+
+            if (target.IsDead == false)
+            { 
+                //If opponent fumbled on their previous action they should become stunned.
+                if (target.Fumbled)
+            {
+                target.IsDazed = true;
+                target.Fumbled = false;
+            }
+
+            if (target.IsEvading > 0)
+            {//Evasion bonus from move/teleport. Only applies to one attack, then is reset to 0.
+             //Not affected by opponent's evasion bonus.
+                difficulty += target.IsEvading;
+                target.IsEvading = 0;
+            }
+            if (attacker.IsAggressive > 0)
+            {//Apply attack bonus from move/teleport then reset it.
+                difficulty -= attacker.IsAggressive;
+                attacker.IsAggressive = 0;
+            }
+
+            if (attacker.Mana < requiredMana)
+            {   //Not enough stamina-- reduced effect
+                difficulty += (int)Math.Ceiling((double)((requiredMana - attacker.Mana) / requiredMana) * (20 - difficulty)); // Too tired? You're going to fail.
+                TeamBattlefield.WindowController.Hint.Add(attacker.Name + " didn't have enough Mana and took a penalty to the attempt.");
+            }
+
+            attacker.HitMana(requiredMana); //Now that mana has been checked, reduce the attacker's mana by the appopriate amount.
+
+            var attackTable = attacker.BuildActionTable(difficulty, target.Dexterity, attacker.Dexterity, target.Mana, target.ManaCap);
+            //If target can dodge the atatcker has to roll higher than the dodge value. Otherwise they need to roll higher than the miss value. We display the relevant value in the output.
+            TeamBattlefield.WindowController.Info.Add("Dice Roll Required: " + (attackTable.miss + 1));
+
+
+            if (roll <= attackTable.miss)
+            {   //Miss-- no effect.
+                TeamBattlefield.WindowController.Hit.Add(" FAILED!");
+                return false; //Failed attack, if we ever need to check that.
+            }
+
+            if (roll >= attackTable.crit)
+            { //Critical Hit-- increased damage/effect, typically 3x damage if there are no other bonuses.
+                TeamBattlefield.WindowController.Hit.Add(" CRITICAL SUCCESS! ");
+                TeamBattlefield.WindowController.Hint.Add(attacker.Name + " can perform another action!");
+                // The only way the target can be stunned is if we set it to stunned with the action we're processing right now.
+                // That in turn is only possible if target had fumbled. So we restore the fumbled status, but keep the stun.
+                // That way we properly get a third action.
+                if (target.IsDazed) target.Fumbled = true;
+                target.IsDazed = true;
+                if (target.IsDisoriented > 0) target.IsDisoriented += 2;
+                if (target.IsExposed > 0) target.IsExposed += 2;
+            }
+
+            //The total mobility bonus generated. This will be split bewteen attack and defense.
+            var totalBonus = Utils.RollDice(new List<int>() { 5, 5 }) - 1 + attacker.Spellpower;
+
+            {
+                target.HPDOT = (int)Math.Ceiling((double)totalBonus / 2);
+                target.HPBurn = (5);
+                TeamBattlefield.WindowController.Hit.Add(attacker.Name + " landed a critical strike against " + target.Name + " and will do damage over time for 4 turns!");
+            }
+
+            if (TeamBattlefield.InGrabRange)
+            {
+                TeamBattlefield.WindowController.Hit.Add(attacker.Name + " moved away!");
+                TeamBattlefield.InGrabRange = false;
+                TeamBattlefield.WindowController.Hint.Add(attacker.Name + " managed to put some distance between them and " + target.Name + " and is now out of grabbing range.");
+            }
+
+            return true; //Successful attack, if we ever need to check that.
+            }
+
+            else
+            {
+                //If opponent fumbled on their previous action they should become stunned.
+                if (othertarget.Fumbled)
+                {
+                    othertarget.IsDazed = true;
+                    othertarget.Fumbled = false;
+                }
+
+                if (othertarget.IsEvading > 0)
+                {//Evasion bonus from move/teleport. Only applies to one attack, then is reset to 0.
+                 //Not affected by opponent's evasion bonus.
+                    difficulty += othertarget.IsEvading;
+                    othertarget.IsEvading = 0;
+                }
+                if (attacker.IsAggressive > 0)
+                {//Apply attack bonus from move/teleport then reset it.
+                    difficulty -= attacker.IsAggressive;
+                    attacker.IsAggressive = 0;
+                }
+
+                if (attacker.Mana < requiredMana)
+                {   //Not enough stamina-- reduced effect
+                    difficulty += (int)Math.Ceiling((double)((requiredMana - attacker.Mana) / requiredMana) * (20 - difficulty)); // Too tired? You're going to fail.
+                    TeamBattlefield.WindowController.Hint.Add(attacker.Name + " didn't have enough Mana and took a penalty to the attempt.");
+                }
+
+                attacker.HitMana(requiredMana); //Now that mana has been checked, reduce the attacker's mana by the appopriate amount.
+
+                var attackTable = attacker.BuildActionTable(difficulty, othertarget.Dexterity, attacker.Dexterity, othertarget.Mana, othertarget.ManaCap);
+                //If target can dodge the atatcker has to roll higher than the dodge value. Otherwise they need to roll higher than the miss value. We display the relevant value in the output.
+                TeamBattlefield.WindowController.Info.Add("Dice Roll Required: " + (attackTable.miss + 1));
+
+
+                if (roll <= attackTable.miss)
+                {   //Miss-- no effect.
+                    TeamBattlefield.WindowController.Hit.Add(" FAILED!");
+                    return false; //Failed attack, if we ever need to check that.
+                }
+
+                if (roll >= attackTable.crit)
+                { //Critical Hit-- increased damage/effect, typically 3x damage if there are no other bonuses.
+                    TeamBattlefield.WindowController.Hit.Add(" CRITICAL SUCCESS! ");
+                    TeamBattlefield.WindowController.Hint.Add(attacker.Name + " can perform another action!");
+                    // The only way the target can be stunned is if we set it to stunned with the action we're processing right now.
+                    // That in turn is only possible if target had fumbled. So we restore the fumbled status, but keep the stun.
+                    // That way we properly get a third action.
+                    if (othertarget.IsDazed) othertarget.Fumbled = true;
+                    othertarget.IsDazed = true;
+                    if (othertarget.IsDisoriented > 0) othertarget.IsDisoriented += 2;
+                    if (othertarget.IsExposed > 0) othertarget.IsExposed += 2;
+                }
+
+                //The total mobility bonus generated. This will be split bewteen attack and defense.
+                var totalBonus = Utils.RollDice(new List<int>() { 5, 5 }) - 1 + attacker.Spellpower;
+
+                {
+                    othertarget.HPDOT = (int)Math.Ceiling((double)totalBonus / 2);
+                    othertarget.HPBurn = (5);
+                    TeamBattlefield.WindowController.Hit.Add(attacker.Name + " landed a critical strike against " + othertarget.Name + " and will do damage over time for 4 turns!");
+                }
+
+                if (TeamBattlefield.InGrabRange)
+                {
+                    TeamBattlefield.WindowController.Hit.Add(attacker.Name + " moved away!");
+                    TeamBattlefield.InGrabRange = false;
+                    TeamBattlefield.WindowController.Hint.Add(attacker.Name + " managed to put some distance between them and " + othertarget.Name + " and is now out of grabbing range.");
+                }
+
+                return true; //Successful attack, if we ever need to check that.
+            }
+        }
+        public bool ActionStab(int roll)
+        {
+            var attacker = this;
+            var target = TeamBattlefield.GetTarget();
+            var partner = TeamBattlefield.GetPartner();
+            var othertarget = TeamBattlefield.GetOther();
+            var requiredStamina = 5;
+            var difficulty = 7; //Base difficulty, rolls greater than this amount will hit.
+
+
+            if (target.IsDead == false)
+            { 
+                //If opponent fumbled on their previous action they should become stunned.
+                if (target.Fumbled)
+            {
+                target.IsDazed = true;
+                target.Fumbled = false;
+            }
+
+            if (target.IsEvading > 0)
+            {//Evasion bonus from move/teleport. Only applies to one attack, then is reset to 0.
+             //Not affected by opponent's evasion bonus.
+                difficulty += target.IsEvading;
+                target.IsEvading = 0;
+            }
+            if (attacker.IsAggressive > 0)
+            {//Apply attack bonus from move/teleport then reset it.
+                difficulty -= attacker.IsAggressive;
+                attacker.IsAggressive = 0;
+            }
+
+            if (attacker.Stamina < requiredStamina)
+            {   //Not enough stamina-- reduced effect
+                difficulty += (int)Math.Ceiling((double)((requiredStamina - attacker.Stamina) / requiredStamina) * (20 - difficulty)); // Too tired? You're going to fail.
+                TeamBattlefield.WindowController.Hint.Add(attacker.Name + " didn't have enough Stamina and took a penalty to the attempt.");
+            }
+
+            attacker.HitStamina(requiredStamina); //Now that mana has been checked, reduce the attacker's mana by the appopriate amount.
+
+            var attackTable = attacker.BuildActionTable(difficulty, target.Dexterity, attacker.Dexterity, target.Stamina, target.StaminaCap);
+            //If target can dodge the atatcker has to roll higher than the dodge value. Otherwise they need to roll higher than the miss value. We display the relevant value in the output.
+            TeamBattlefield.WindowController.Info.Add("Dice Roll Required: " + (attackTable.miss + 1));
+
+
+            if (roll <= attackTable.miss)
+            {   //Miss-- no effect.
+                TeamBattlefield.WindowController.Hit.Add(" FAILED!");
+                return false; //Failed attack, if we ever need to check that.
+            }
+
+            if (roll >= attackTable.crit)
+            { //Critical Hit-- increased damage/effect, typically 3x damage if there are no other bonuses.
+                TeamBattlefield.WindowController.Hit.Add(" CRITICAL SUCCESS! ");
+                TeamBattlefield.WindowController.Hint.Add(attacker.Name + " can perform another action!");
+                // The only way the target can be stunned is if we set it to stunned with the action we're processing right now.
+                // That in turn is only possible if target had fumbled. So we restore the fumbled status, but keep the stun.
+                // That way we properly get a third action.
+                if (target.IsDazed) target.Fumbled = true;
+                target.IsDazed = true;
+                if (target.IsDisoriented > 0) target.IsDisoriented += 2;
+                if (target.IsExposed > 0) target.IsExposed += 2;
+            }
+
+            //The total mobility bonus generated. This will be split bewteen attack and defense.
+            var totalBonus = Utils.RollDice(new List<int>() { 5, 5 }) - 1 + attacker.Strength;
+
+            {
+                target.HPDOT = (int)Math.Ceiling((double)totalBonus / 2);
+                target.HPBurn = (5);
+                TeamBattlefield.WindowController.Hit.Add(attacker.Name + " landed a critical strike against " + target.Name + " and will do damage over time for 4 turns!");
+            }
+
+            if (TeamBattlefield.InGrabRange)
+            {
+                TeamBattlefield.WindowController.Hit.Add(attacker.Name + " moved away!");
+                TeamBattlefield.InGrabRange = false;
+                TeamBattlefield.WindowController.Hint.Add(attacker.Name + " managed to put some distance between them and " + target.Name + " and is now out of grabbing range.");
+            }
+
+            return true; //Successful attack, if we ever need to check that.
+            }
+            else
+            {
+                //If opponent fumbled on their previous action they should become stunned.
+                if (othertarget.Fumbled)
+                {
+                    othertarget.IsDazed = true;
+                    othertarget.Fumbled = false;
+                }
+
+                if (othertarget.IsEvading > 0)
+                {//Evasion bonus from move/teleport. Only applies to one attack, then is reset to 0.
+                 //Not affected by opponent's evasion bonus.
+                    difficulty += othertarget.IsEvading;
+                    othertarget.IsEvading = 0;
+                }
+                if (attacker.IsAggressive > 0)
+                {//Apply attack bonus from move/teleport then reset it.
+                    difficulty -= attacker.IsAggressive;
+                    attacker.IsAggressive = 0;
+                }
+
+                if (attacker.Stamina < requiredStamina)
+                {   //Not enough stamina-- reduced effect
+                    difficulty += (int)Math.Ceiling((double)((requiredStamina - attacker.Stamina) / requiredStamina) * (20 - difficulty)); // Too tired? You're going to fail.
+                    TeamBattlefield.WindowController.Hint.Add(attacker.Name + " didn't have enough Stamina and took a penalty to the attempt.");
+                }
+
+                attacker.HitStamina(requiredStamina); //Now that mana has been checked, reduce the attacker's mana by the appopriate amount.
+
+                var attackTable = attacker.BuildActionTable(difficulty, othertarget.Dexterity, attacker.Dexterity, othertarget.Stamina, othertarget.StaminaCap);
+                //If target can dodge the atatcker has to roll higher than the dodge value. Otherwise they need to roll higher than the miss value. We display the relevant value in the output.
+                TeamBattlefield.WindowController.Info.Add("Dice Roll Required: " + (attackTable.miss + 1));
+
+
+                if (roll <= attackTable.miss)
+                {   //Miss-- no effect.
+                    TeamBattlefield.WindowController.Hit.Add(" FAILED!");
+                    return false; //Failed attack, if we ever need to check that.
+                }
+
+                if (roll >= attackTable.crit)
+                { //Critical Hit-- increased damage/effect, typically 3x damage if there are no other bonuses.
+                    TeamBattlefield.WindowController.Hit.Add(" CRITICAL SUCCESS! ");
+                    TeamBattlefield.WindowController.Hint.Add(attacker.Name + " can perform another action!");
+                    // The only way the target can be stunned is if we set it to stunned with the action we're processing right now.
+                    // That in turn is only possible if target had fumbled. So we restore the fumbled status, but keep the stun.
+                    // That way we properly get a third action.
+                    if (othertarget.IsDazed) othertarget.Fumbled = true;
+                    othertarget.IsDazed = true;
+                    if (othertarget.IsDisoriented > 0) othertarget.IsDisoriented += 2;
+                    if (othertarget.IsExposed > 0) othertarget.IsExposed += 2;
+                }
+
+                //The total mobility bonus generated. This will be split bewteen attack and defense.
+                var totalBonus = Utils.RollDice(new List<int>() { 5, 5 }) - 1 + attacker.Strength;
+
+                {
+                    othertarget.HPDOT = (int)Math.Ceiling((double)totalBonus / 2);
+                    othertarget.HPBurn = (5);
+                    TeamBattlefield.WindowController.Hit.Add(attacker.Name + " landed a critical strike against " + othertarget.Name + " and will do damage over time for 4 turns!");
+                }
+
+                if (TeamBattlefield.InGrabRange)
+                {
+                    TeamBattlefield.WindowController.Hit.Add(attacker.Name + " moved away!");
+                    TeamBattlefield.InGrabRange = false;
+                    TeamBattlefield.WindowController.Hint.Add(attacker.Name + " managed to put some distance between them and " + othertarget.Name + " and is now out of grabbing range.");
+                }
+
+                return true; //Successful attack, if we ever need to check that.
+                }
+            }
+
 
         public bool ActionRest(int roll)
         {
             var attacker = this;
             var target = TeamBattlefield.GetTarget();
-            var daze1 = TeamBattlefield.GetPartner();
-            var daze2 = TeamBattlefield.GetOther();
+            var partner = TeamBattlefield.GetPartner();
+            var othertarget = TeamBattlefield.GetOther();
             var difficulty = 1; //Base difficulty, rolls greater than this amount will succeed.
 
             //if (attacker.IsDisoriented) difficulty += 2; //Up the difficulty if you are dizzy.
@@ -1740,8 +2994,8 @@ namespace RDVFSharp.Entities
                 TeamBattlefield.WindowController.Hit.Add("CRITICAL SUCCESS! ");
                 TeamBattlefield.WindowController.Hint.Add(attacker.Name + " can perform another action!");
                 target.IsDazed = true;
-                daze1.IsDazed = true;
-                daze2.IsDazed= true;
+                partner.IsDazed = true;
+                othertarget.IsDazed= true;
                 if (target.IsDisoriented > 0) target.IsDisoriented += 2;
                 if (target.IsExposed > 0) target.IsExposed += 2;
             }
@@ -1769,8 +3023,8 @@ namespace RDVFSharp.Entities
         {
             var attacker = this;
             var target = TeamBattlefield.GetTarget();
-            var daze1 = TeamBattlefield.GetPartner();
-            var daze2 = TeamBattlefield.GetOther();
+            var partner = TeamBattlefield.GetPartner();
+            var othertarget = TeamBattlefield.GetOther();
             var difficulty = 1; //Base difficulty, rolls greater than this amount will succeed.
 
             //if (attacker.IsDisoriented) difficulty += 2; //Up the difficulty if you are dizzy.
@@ -1801,8 +3055,8 @@ namespace RDVFSharp.Entities
                 TeamBattlefield.WindowController.Hit.Add("CRITICAL SUCCESS! ");
                 TeamBattlefield.WindowController.Hint.Add(attacker.Name + " can perform another action!");
                 target.IsDazed = true;
-                daze1.IsDazed = true;
-                daze2.IsDazed= true;
+                partner.IsDazed = true;
+                othertarget.IsDazed= true;
                 if (target.IsDisoriented > 0) target.IsDisoriented += 2;
                 if (target.IsExposed > 0) target.IsExposed += 2;
             }
@@ -1824,8 +3078,8 @@ namespace RDVFSharp.Entities
         {
             var attacker = this;
             var target = TeamBattlefield.GetTarget();
-            var daze1 = TeamBattlefield.GetPartner();
-            var daze2 = TeamBattlefield.GetOther();
+            var partner = TeamBattlefield.GetPartner();
+            var othertarget = TeamBattlefield.GetOther();
             var difficulty = 1; //Base difficulty, rolls greater than this amount will succeed.
 
             //if (attacker.IsDisoriented) difficulty += 2; //Up the difficulty if you are dizzy.
@@ -1856,8 +3110,8 @@ namespace RDVFSharp.Entities
                 TeamBattlefield.WindowController.Hit.Add("CRITICAL SUCCESS! ");
                 TeamBattlefield.WindowController.Hint.Add(attacker.Name + " can perform another action!");
                 target.IsDazed = true;
-                daze1.IsDazed = true;
-                daze2.IsDazed = true;
+                partner.IsDazed = true;
+                othertarget.IsDazed = true;
                 if (target.IsDisoriented > 0) target.IsDisoriented += 2;
                 if (target.IsExposed > 0) target.IsExposed += 2;
             }
@@ -1926,8 +3180,8 @@ namespace RDVFSharp.Entities
         {
             var attacker = this;
             var target = TeamBattlefield.GetTarget();
-            var daze1 = TeamBattlefield.GetPartner();
-            var daze2 = TeamBattlefield.GetOther();
+            var partner = TeamBattlefield.GetPartner();
+            var othertarget = TeamBattlefield.GetOther();
             var requiredStam = 5;
             var difficulty = 1; //Base difficulty, rolls greater than this amount will hit.
 
@@ -1994,8 +3248,8 @@ namespace RDVFSharp.Entities
                 // That way we properly get a third action.
                 if (target.IsDazed) target.Fumbled = true;
                 target.IsDazed = true;
-                daze1.IsDazed = true;
-                daze2.IsDazed = true;
+                partner.IsDazed = true;
+                othertarget.IsDazed = true;
                 if (target.IsDisoriented > 0) target.IsDisoriented += 2;
                 if (target.IsExposed > 0) target.IsExposed += 2;
             }
@@ -2029,8 +3283,8 @@ namespace RDVFSharp.Entities
         {
             var attacker = this;
             var target = TeamBattlefield.GetTarget();
-            var daze1 = TeamBattlefield.GetPartner();
-            var daze2 = TeamBattlefield.GetOther();
+            var partner = TeamBattlefield.GetPartner();
+            var othertarget = TeamBattlefield.GetOther();
             var requiredStam = 0;
             var difficulty = 1; //Base difficulty, rolls greater than this amount will hit.
 
@@ -2090,8 +3344,8 @@ namespace RDVFSharp.Entities
                 // That way we properly get a third action.
                 if (target.IsDazed) target.Fumbled = true;
                 target.IsDazed = true;
-                daze1.IsDazed = true;
-                daze2.IsDazed = true;
+                partner.IsDazed = true;
+                othertarget.IsDazed = true;
                 if (target.IsDisoriented > 0) target.IsDisoriented += 2;
                 if (target.IsExposed > 0) target.IsExposed += 2;
             }
@@ -2113,8 +3367,8 @@ namespace RDVFSharp.Entities
         {
             var attacker = this;
             var target = TeamBattlefield.GetTarget();
-            var daze1 = TeamBattlefield.GetPartner();
-            var daze2 = TeamBattlefield.GetOther();
+            var partner = TeamBattlefield.GetPartner();
+            var othertarget = TeamBattlefield.GetOther();
             var requiredMana = 5;
             var difficulty = 1; //Base difficulty, rolls greater than this amount will hit.
 
@@ -2181,8 +3435,8 @@ namespace RDVFSharp.Entities
                 // That way we properly get a third action.
                 if (target.IsDazed) target.Fumbled = true;
                 target.IsDazed = true;
-                daze1.IsDazed = true;
-                daze2.IsDazed = true;
+                partner.IsDazed = true;
+                othertarget.IsDazed = true;
                 if (target.IsDisoriented > 0) target.IsDisoriented += 2;
                 if (target.IsExposed > 0) target.IsExposed += 2;
             }
@@ -2217,8 +3471,8 @@ namespace RDVFSharp.Entities
         {
             var attacker = TeamBattlefield.GetActor();
             var target = TeamBattlefield.GetTarget();
-            var daze1 = TeamBattlefield.GetPartner();
-            var daze2 = TeamBattlefield.GetOther();
+            var partner = TeamBattlefield.GetPartner();
+            var othertarget = TeamBattlefield.GetOther();
             var difficulty = 6; //Base difficulty, rolls greater than this amount will hit.
 
             //If opponent fumbled on their previous action they should become stunned.
@@ -2256,8 +3510,8 @@ namespace RDVFSharp.Entities
                 // That way we properly get a third action.
                 if (target.IsDazed) target.Fumbled = true;
                 target.IsDazed = true;
-                daze1.IsDazed = true;
-                daze2.IsDazed = true;
+                partner.IsDazed = true;
+                othertarget.IsDazed = true;
             }
 
             if (roll >= attackTable.targethit)

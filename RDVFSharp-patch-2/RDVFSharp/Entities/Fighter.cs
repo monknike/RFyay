@@ -1471,7 +1471,7 @@ namespace RDVFSharp.Entities
 
             attacker.HitMana(requiredMana); //Now that mana has been checked, reduce the attacker's mana by the appopriate amount.
 
-            var attackTable = attacker.BuildActionTable(difficulty, 0, 0, target.Mana, target.ManaCap);
+            var attackTable = attacker.BuildActionTable(difficulty, target.Dexterity, attacker.Dexterity, target.Mana, target.ManaCap);
             //If target can dodge the atatcker has to roll higher than the dodge value. Otherwise they need to roll higher than the miss value. We display the relevant value in the output.
             Battlefield.WindowController.Info.Add("Dice Roll Required: " + (attackTable.miss + 1));
 
@@ -1547,7 +1547,7 @@ namespace RDVFSharp.Entities
 
             attacker.HitStamina(requiredStamina); //Now that mana has been checked, reduce the attacker's mana by the appopriate amount.
 
-            var attackTable = attacker.BuildActionTable(difficulty, 0, 0, target.Stamina, target.StaminaCap);
+            var attackTable = attacker.BuildActionTable(difficulty, target.Dexterity, attacker.Dexterity, target.Stamina, target.StaminaCap);
             //If target can dodge the atatcker has to roll higher than the dodge value. Otherwise they need to roll higher than the miss value. We display the relevant value in the output.
             Battlefield.WindowController.Info.Add("Dice Roll Required: " + (attackTable.miss + 1));
 

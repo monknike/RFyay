@@ -108,6 +108,9 @@ namespace RDVFSharp
         {
             var action = actionMade;
             var actor = GetActor();
+            var target = GetTarget();
+            var daze1 = GetPartner();
+            var daze2 = GetOther();
             var roll = Utils.RollDice(20);
             while (actor.LastRolls.IndexOf(roll) != -1)
             {
@@ -141,9 +144,13 @@ namespace RDVFSharp
             TurnUpKeep(); //End of turn upkeep (Stamina regen, check for being stunned/knocked out, etc.)
             OutputTeamFighterstatus(); // Creates the fighter status blocks (HP/Mana/Stamina)
                                        //Battlefield.outputTeamFighterstats();
-            WindowController.Hint.Add(GetActor().Name + "'s next target is " + GetTarget().Name);
+            if (GetTarget().IsDead == true)
+            { WindowController.Hint.Add(GetActor().Name + "'s next target is " + GetOther().Name); }
+            else
+            { WindowController.Hint.Add(GetActor().Name + "'s next target is " + GetTarget().Name); }
+
             WindowController.UpdateOutput(this); //Tells the window controller to format and dump all the queued up messages to the results screen.
-        }
+            }
 
         //public bool AddFighter(ArenaSettings settings)
         //{
@@ -275,6 +282,12 @@ namespace RDVFSharp
             {
                 TeamFighters[currentTeamFighter].IsStunned -= 1;
                 NextFighter();
+            }
+
+            if (TeamFighters[currentTeamFighter].HPBurn > 0)
+            {
+                TeamFighters[currentTeamFighter].HPBurn -= 1;
+
             }
         }
 
