@@ -802,6 +802,7 @@ namespace RDVFSharp.Entities
             damage = Math.Max(damage, 0);
             if (damage > 0) target.HitHp(damage); //This is to prevent the game displayin that the attacker did 0 damage, which is the normal case.
             target.IsStunned = true;
+            if (attacker.HPBurn > 1) HPBurn += 1;
             return true; //Successful attack, if we ever need to check that.
         }
 
@@ -1437,12 +1438,12 @@ namespace RDVFSharp.Entities
             return true; //Successful attack, if we ever need to check that.
         }
 
-        public bool ActionDot(int roll)
+        public bool ActionBurn(int roll)
         {
             var attacker = this;
             var target = Battlefield.GetTarget();
             var requiredMana = 5;
-            var difficulty = 7; //Base difficulty, rolls greater than this amount will hit.
+            var difficulty = 8; //Base difficulty, rolls greater than this amount will hit.
 
             //If opponent fumbled on their previous action they should become stunned.
             if (target.Fumbled)
@@ -1500,8 +1501,8 @@ namespace RDVFSharp.Entities
 
             {
                 target.HPDOT = (int)Math.Ceiling((double)totalBonus / 2);
-                target.HPBurn = (5);
-                Battlefield.WindowController.Hit.Add(attacker.Name + " landed a critical strike against " + target.Name + " and will do damage over time for 4 turns!");
+                target.HPBurn = 5;
+                Battlefield.WindowController.Hit.Add(attacker.Name + " landed a strike against " + target.Name + " that will do damage over time for 4 turns!");
             }
 
             if (Battlefield.InGrabRange)
@@ -1518,7 +1519,7 @@ namespace RDVFSharp.Entities
             var attacker = this;
             var target = Battlefield.GetTarget();
             var requiredStamina = 5;
-            var difficulty = 7; //Base difficulty, rolls greater than this amount will hit.
+            var difficulty = 8; //Base difficulty, rolls greater than this amount will hit.
 
             //If opponent fumbled on their previous action they should become stunned.
             if (target.Fumbled)
@@ -1576,8 +1577,8 @@ namespace RDVFSharp.Entities
 
             {
                 target.HPDOT = (int)Math.Ceiling((double)totalBonus / 2);
-                target.HPBurn = (5);
-                Battlefield.WindowController.Hit.Add(attacker.Name + " landed a critical strike against " + target.Name + " and will do damage over time for 4 turns!");
+                target.HPBurn = 5;
+                Battlefield.WindowController.Hit.Add(attacker.Name + " landed a strike against " + target.Name + " that will do damage over time for 4 turns!");
             }
 
             if (Battlefield.InGrabRange)

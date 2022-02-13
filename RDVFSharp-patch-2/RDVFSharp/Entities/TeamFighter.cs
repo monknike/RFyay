@@ -367,7 +367,7 @@ namespace RDVFSharp.Entities
 
             if (IsGuarding > 0)
             {
-                TeamBattlefield.WindowController.Hint.Add(Name + " has a temporary +" + IsGuarding + " bonus to damage reduction.");
+                TeamBattlefield.WindowController.Hint.Add(Name + " has a temporary +" + IsGuarding + " bonus to evasion and damage reduction.");
             }
 
             if (IsEvading > 0)
@@ -409,22 +409,40 @@ namespace RDVFSharp.Entities
                 IsAggressive = 0;
                 IsExposed = 0;
                 SetTarget = 0;
+                HPDOT = 0;
+                HPBurn = 0;
                 TeamBattlefield.GetActor().IsEscaping = 0;
                 TeamBattlefield.GetActor().IsRestrained = false;
-                TeamBattlefield.WindowController.Hit.Add(target.Name + " has been taken out! Eliminate their partner to win the match! (Your target has automatically changed)");
+                TeamBattlefield.WindowController.Hit.Add(Name + " has been taken out! Eliminate their partner to win the match! (Your target has automatically changed)");
                 
             }
 
             if (target.IsDead == true)
 
             {
+
+                attacker.RemoveGrappler(target);
+                partner.RemoveGrappler(target);
                 if (attacker.SetTarget == 1)
                     attacker.SetTarget -= 1;
                 if (attacker.SetTarget == 0)
                     attacker.SetTarget += 1;
             }
 
-            if (target.IsDead == true & other.IsDead == true)
+            if (other.IsDead == true)
+            { 
+                attacker.RemoveGrappler(other);
+                partner.RemoveGrappler(other);
+            }
+
+            if (partner.IsDead == true)
+            {
+                other.RemoveGrappler(partner);
+                target.RemoveGrappler(partner);
+            }
+
+
+            if (target.IsDead == true & other.IsDead == true & this == target)
             {
                 TeamBattlefield.WindowController.Hit.Add("The fight is over! CLAIM YOUR SPOILS and VICTORY and FINISH YOUR OPPONENT!");
                 TeamBattlefield.WindowController.Special.Add("FATALITY SUGGESTION: " + this.PickFatality());
@@ -476,7 +494,8 @@ namespace RDVFSharp.Entities
 
             if (target.IsGuarding > 0)
             {//Evasion bonus from move/teleport. Only applies to one attack, then is reset to 0.
-                damage -= target.IsGuarding;
+                    difficulty += target.IsGuarding; 
+                    damage -= target.IsGuarding;
             }
 
             if (attacker.IsGuarding > 0)
@@ -560,6 +579,7 @@ namespace RDVFSharp.Entities
 
                 if (othertarget.IsGuarding > 0)
                 {//Evasion bonus from move/teleport. Only applies to one attack, then is reset to 0.
+                    difficulty += othertarget.IsGuarding;
                     damage -= othertarget.IsGuarding;
                 }
 
@@ -667,8 +687,10 @@ namespace RDVFSharp.Entities
                 }
                 if (target.IsGuarding > 0)
                 {//Evasion bonus from move/teleport. Only applies to one attack, then is reset to 0.
+                    difficulty += target.IsGuarding;
                     damage -= target.IsGuarding;
                 }
+
                 if (attacker.IsGuarding > 0)
                 {//Apply attack bonus from move/teleport then reset it.
                     attacker.IsGuarding = 0;
@@ -752,6 +774,7 @@ namespace RDVFSharp.Entities
                 }
                 if (othertarget.IsGuarding > 0)
                 {//Evasion bonus from move/teleport. Only applies to one attack, then is reset to 0.
+                    difficulty += othertarget.IsGuarding;
                     damage -= othertarget.IsGuarding;
                 }
                 if (attacker.IsGuarding > 0)
@@ -842,6 +865,11 @@ namespace RDVFSharp.Entities
                     damage += attacker.IsAggressive;
                     attacker.IsAggressive = 0;
                 }
+                if (target.IsGuarding > 0)
+                {//Evasion bonus from move/teleport. Only applies to one attack, then is reset to 0.
+                    difficulty += target.IsGuarding;
+                    damage -= target.IsGuarding;
+                }
 
                 if (attacker.IsGuarding > 0)
                 {//Apply attack bonus from move/teleport then reset it.
@@ -914,6 +942,12 @@ namespace RDVFSharp.Entities
                     difficulty -= attacker.IsAggressive;
                     damage += attacker.IsAggressive;
                     attacker.IsAggressive = 0;
+                }
+
+                if (othertarget.IsGuarding > 0)
+                {//Evasion bonus from move/teleport. Only applies to one attack, then is reset to 0.
+                    difficulty += othertarget.IsGuarding;
+                    damage -= othertarget.IsGuarding;
                 }
 
                 if (attacker.IsGuarding > 0)
@@ -1093,6 +1127,7 @@ namespace RDVFSharp.Entities
                 }
                 if (target.IsGuarding > 0)
                 {//Evasion bonus from move/teleport. Only applies to one attack, then is reset to 0.
+                    difficulty += target.IsGuarding;
                     damage -= target.IsGuarding;
                 }
 
@@ -1201,6 +1236,7 @@ namespace RDVFSharp.Entities
                 }
                 if (othertarget.IsGuarding > 0)
                 {//Evasion bonus from move/teleport. Only applies to one attack, then is reset to 0.
+                    difficulty += othertarget.IsGuarding;
                     damage -= othertarget.IsGuarding;
                 }
 
@@ -1311,6 +1347,13 @@ namespace RDVFSharp.Entities
                 damage -= target.IsEvading;
                 target.IsEvading = 0;
             }
+
+            if (target.IsGuarding > 0)
+            {//Evasion bonus from move/teleport. Only applies to one attack, then is reset to 0.
+                difficulty += target.IsGuarding;
+                damage -= target.IsGuarding;
+            }
+
             if (attacker.IsAggressive > 0)
             {//Apply attack bonus from move/teleport then reset it.
                 difficulty -= attacker.IsAggressive;
@@ -1438,7 +1481,8 @@ namespace RDVFSharp.Entities
                 }
                 if (target.IsGuarding > 0)
                 {//Evasion bonus from move/teleport. Only applies to one attack, then is reset to 0.
-                    damage -= target.IsGuarding;
+                    difficulty += (int)Math.Ceiling((double)target.IsGuarding / 2);
+                    damage -= (int)Math.Ceiling((double)target.IsGuarding / 2); ;
                 }
 
                 if (attacker.IsGuarding > 0)
@@ -1527,6 +1571,7 @@ namespace RDVFSharp.Entities
                 }
                 if (othertarget.IsGuarding > 0)
                 {//Evasion bonus from move/teleport. Only applies to one attack, then is reset to 0.
+                    difficulty += othertarget.IsGuarding;
                     damage -= othertarget.IsGuarding;
                 }
 
@@ -1628,6 +1673,7 @@ namespace RDVFSharp.Entities
                 }
                 if (target.IsGuarding > 0)
                 {//Evasion bonus from move/teleport. Only applies to one attack, then is reset to 0.
+                    difficulty += target.IsGuarding;
                     damage -= target.IsGuarding;
                 }
 
@@ -1717,6 +1763,7 @@ namespace RDVFSharp.Entities
                 }
                 if (othertarget.IsGuarding > 0)
                 {//Evasion bonus from move/teleport. Only applies to one attack, then is reset to 0.
+                    difficulty += othertarget.IsGuarding;
                     damage -= othertarget.IsGuarding;
                 }
 
@@ -1819,12 +1866,13 @@ namespace RDVFSharp.Entities
                 damage += attacker.IsAggressive;
                 attacker.IsAggressive = 0;
             }
-            if (target.IsGuarding > 0)
-            {//Evasion bonus from move/teleport. Only applies to one attack, then is reset to 0.
-                damage -= target.IsGuarding;
-            }
+                if (target.IsGuarding > 0)
+                {//Evasion bonus from move/teleport. Only applies to one attack, then is reset to 0.
+                    difficulty += target.IsGuarding;
+                    damage -= target.IsGuarding;
+                }
 
-            if (attacker.IsGuarding > 0)
+                if (attacker.IsGuarding > 0)
             {//Apply attack bonus from move/teleport then reset it.
                 attacker.IsGuarding = 0;
             }
@@ -1910,6 +1958,7 @@ namespace RDVFSharp.Entities
                 }
                 if (othertarget.IsGuarding > 0)
                 {//Evasion bonus from move/teleport. Only applies to one attack, then is reset to 0.
+                    difficulty += othertarget.IsGuarding;
                     damage -= othertarget.IsGuarding;
                 }
 
@@ -2014,8 +2063,10 @@ namespace RDVFSharp.Entities
 
                 if (target.IsGuarding > 0)
                 {//Evasion bonus from move/teleport. Only applies to one attack, then is reset to 0.
-                    damage -= target.IsGuarding;
+                    difficulty += (int)Math.Ceiling((double)target.IsGuarding / 2);
+                    damage -= (int)Math.Ceiling((double)target.IsGuarding / 2);
                 }
+
                 if (attacker.IsGuarding > 0)
                 {//Apply attack bonus from move/teleport then reset it.
                     attacker.IsGuarding = 0;
@@ -2104,7 +2155,8 @@ namespace RDVFSharp.Entities
 
                 if (othertarget.IsGuarding > 0)
                 {//Evasion bonus from move/teleport. Only applies to one attack, then is reset to 0.
-                    damage -= othertarget.IsGuarding;
+                    difficulty += (int)Math.Ceiling((double)othertarget.IsGuarding / 2);
+                    damage -= (int)Math.Ceiling((double)othertarget.IsGuarding / 2);
                 }
                 if (attacker.IsGuarding > 0)
                 {//Apply attack bonus from move/teleport then reset it.
@@ -2209,8 +2261,10 @@ namespace RDVFSharp.Entities
 
                 if (target.IsGuarding > 0)
                 {//Evasion bonus from move/teleport. Only applies to one attack, then is reset to 0.
-                    damage -= target.IsGuarding;
+                    difficulty += (int)Math.Ceiling((double)target.IsGuarding / 2);
+                    damage -= (int)Math.Ceiling((double)target.IsGuarding / 2);
                 }
+
                 if (attacker.IsGuarding > 0)
                 {//Apply attack bonus from move/teleport then reset it.
                     attacker.IsGuarding = 0;
@@ -2298,7 +2352,8 @@ namespace RDVFSharp.Entities
 
                 if (othertarget.IsGuarding > 0)
                 {//Evasion bonus from move/teleport. Only applies to one attack, then is reset to 0.
-                    damage -= othertarget.IsGuarding;
+                    difficulty += (int)Math.Ceiling((double)othertarget.IsGuarding / 2);
+                    damage -= (int)Math.Ceiling((double)othertarget.IsGuarding / 2);
                 }
                 if (attacker.IsGuarding > 0)
                 {//Apply attack bonus from move/teleport then reset it.
@@ -2388,8 +2443,8 @@ namespace RDVFSharp.Entities
 
                 if (target.IsEvading > 0)
                 {//Evasion bonus from move/teleport. Only applies to one attack, then is reset to 0.
-                    difficulty += (int)Math.Ceiling((double)target.IsEvading / 2);//Half effect on ranged attacks.
-                    damage -= (int)Math.Ceiling((double)target.IsEvading / 2);
+                    difficulty += target.IsEvading;//Half effect on ranged attacks.
+                    damage -= target.IsEvading;
                     target.IsEvading = 0;
                 }
                 if (attacker.IsAggressive > 0)
@@ -2402,7 +2457,9 @@ namespace RDVFSharp.Entities
                 if (target.IsGuarding > 0)
                 {//Evasion bonus from move/teleport. Only applies to one attack, then is reset to 0.
                     damage -= target.IsGuarding;
+                    difficulty += target.IsGuarding;
                 }
+
                 if (attacker.IsGuarding > 0)
                 {//Apply attack bonus from move/teleport then reset it.
                     attacker.IsGuarding = 0;
@@ -2477,8 +2534,8 @@ namespace RDVFSharp.Entities
 
                 if (othertarget.IsEvading > 0)
                 {//Evasion bonus from move/teleport. Only applies to one attack, then is reset to 0.
-                    difficulty += (int)Math.Ceiling((double)othertarget.IsEvading / 2);//Half effect on ranged attacks.
-                    damage -= (int)Math.Ceiling((double)othertarget.IsEvading / 2);
+                    difficulty += othertarget.IsEvading;//Half effect on ranged attacks.
+                    damage -= othertarget.IsEvading;
                     othertarget.IsEvading = 0;
                 }
                 if (attacker.IsAggressive > 0)
@@ -2490,8 +2547,10 @@ namespace RDVFSharp.Entities
 
                 if (othertarget.IsGuarding > 0)
                 {//Evasion bonus from move/teleport. Only applies to one attack, then is reset to 0.
+                    difficulty += othertarget.IsGuarding;
                     damage -= othertarget.IsGuarding;
                 }
+
                 if (attacker.IsGuarding > 0)
                 {//Apply attack bonus from move/teleport then reset it.
                     attacker.IsGuarding = 0;
@@ -2578,8 +2637,8 @@ namespace RDVFSharp.Entities
 
             if (target.IsEvading > 0)
             {//Evasion bonus from move/teleport. Only applies to one attack, then is reset to 0.
-                difficulty += (int)Math.Ceiling((double)target.IsEvading / 2);//Half effect on ranged attacks.
-                damage -= (int)Math.Ceiling((double)target.IsEvading / 2);
+                difficulty += target.IsEvading / 2;//Half effect on ranged attacks.
+                damage -= target.IsEvading;
                 target.IsEvading = 0;
             }
             if (attacker.IsAggressive > 0)
@@ -2592,8 +2651,10 @@ namespace RDVFSharp.Entities
             if (target.IsGuarding > 0)
             {//Evasion bonus from move/teleport. Only applies to one attack, then is reset to 0.
                 damage -= target.IsGuarding;
+                difficulty += target.IsGuarding;
             }
-            if (attacker.IsGuarding > 0)
+
+                if (attacker.IsGuarding > 0)
             {//Apply attack bonus from move/teleport then reset it.
                 attacker.IsGuarding = 0;
             }
@@ -2651,14 +2712,14 @@ namespace RDVFSharp.Entities
             return true; //Successful attack, if we ever need to check that.
         }
 
-        public bool ActionDot(int roll)
+        public bool ActionBurn(int roll)
         {
             var attacker = this;
             var target = TeamBattlefield.GetTarget();
             var partner = TeamBattlefield.GetPartner();
             var othertarget = TeamBattlefield.GetOther();
             var requiredMana = 5;
-            var difficulty = 7; //Base difficulty, rolls greater than this amount will hit.
+            var difficulty = 8; //Base difficulty, rolls greater than this amount will hit.
 
             if (target.IsDead == false)
             { 
@@ -2675,7 +2736,13 @@ namespace RDVFSharp.Entities
                 difficulty += target.IsEvading;
                 target.IsEvading = 0;
             }
-            if (attacker.IsAggressive > 0)
+
+                if (target.IsGuarding > 0)
+                {//Evasion bonus from move/teleport. Only applies to one attack, then is reset to 0.
+                    difficulty += target.IsGuarding;
+                }
+
+                if (attacker.IsAggressive > 0)
             {//Apply attack bonus from move/teleport then reset it.
                 difficulty -= attacker.IsAggressive;
                 attacker.IsAggressive = 0;
@@ -2719,7 +2786,7 @@ namespace RDVFSharp.Entities
             {
                 target.HPDOT = (int)Math.Ceiling((double)totalBonus / 2);
                 target.HPBurn = (5);
-                TeamBattlefield.WindowController.Hit.Add(attacker.Name + " landed a critical strike against " + target.Name + " and will do damage over time for 4 turns!");
+                TeamBattlefield.WindowController.Hit.Add(attacker.Name + " landed a strike against " + target.Name + " that will do damage over time for 4 turns!");
             }
 
             if (TeamBattlefield.InGrabRange)
@@ -2747,6 +2814,11 @@ namespace RDVFSharp.Entities
                     difficulty += othertarget.IsEvading;
                     othertarget.IsEvading = 0;
                 }
+                if (othertarget.IsGuarding > 0)
+                {//Evasion bonus from move/teleport. Only applies to one attack, then is reset to 0.
+                    difficulty += othertarget.IsGuarding;
+                }
+
                 if (attacker.IsAggressive > 0)
                 {//Apply attack bonus from move/teleport then reset it.
                     difficulty -= attacker.IsAggressive;
@@ -2811,7 +2883,7 @@ namespace RDVFSharp.Entities
             var partner = TeamBattlefield.GetPartner();
             var othertarget = TeamBattlefield.GetOther();
             var requiredStamina = 5;
-            var difficulty = 7; //Base difficulty, rolls greater than this amount will hit.
+            var difficulty = 8; //Base difficulty, rolls greater than this amount will hit.
 
 
             if (target.IsDead == false)
@@ -2829,7 +2901,13 @@ namespace RDVFSharp.Entities
                 difficulty += target.IsEvading;
                 target.IsEvading = 0;
             }
-            if (attacker.IsAggressive > 0)
+
+                if (target.IsGuarding > 0)
+                {//Evasion bonus from move/teleport. Only applies to one attack, then is reset to 0.
+                    difficulty += target.IsGuarding;
+                }
+
+                if (attacker.IsAggressive > 0)
             {//Apply attack bonus from move/teleport then reset it.
                 difficulty -= attacker.IsAggressive;
                 attacker.IsAggressive = 0;
@@ -2873,10 +2951,10 @@ namespace RDVFSharp.Entities
             {
                 target.HPDOT = (int)Math.Ceiling((double)totalBonus / 2);
                 target.HPBurn = (5);
-                TeamBattlefield.WindowController.Hit.Add(attacker.Name + " landed a critical strike against " + target.Name + " and will do damage over time for 4 turns!");
-            }
+                    TeamBattlefield.WindowController.Hit.Add(attacker.Name + " landed a strike against " + target.Name + " that will do damage over time for 4 turns!");
+                }
 
-            if (TeamBattlefield.InGrabRange)
+                if (TeamBattlefield.InGrabRange)
             {
                 TeamBattlefield.WindowController.Hit.Add(attacker.Name + " moved away!");
                 TeamBattlefield.InGrabRange = false;
@@ -2900,6 +2978,12 @@ namespace RDVFSharp.Entities
                     difficulty += othertarget.IsEvading;
                     othertarget.IsEvading = 0;
                 }
+
+                if (othertarget.IsGuarding > 0)
+                {//Evasion bonus from move/teleport. Only applies to one attack, then is reset to 0.
+                    difficulty += othertarget.IsGuarding;
+                }
+
                 if (attacker.IsAggressive > 0)
                 {//Apply attack bonus from move/teleport then reset it.
                     difficulty -= attacker.IsAggressive;
