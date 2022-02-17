@@ -418,6 +418,8 @@ namespace RDVFSharp.Entities
             if (attacker.IsRestrained) difficulty += 2; //Up the difficulty if the attacker is restrained.
             if (target.IsRestrained) difficulty -= 4; //Lower it if the target is restrained.
             if (target.IsExposed > 0) difficulty -= 2; // If opponent left themself wide open after a failed strong attack, they'll be easier to hit.
+            if (target.HPBurn > 1) difficulty -= 1;
+
 
             if (target.IsEvading > 0)
             {//Evasion bonus from move/teleport. Only applies to one attack, then is reset to 0.
@@ -502,6 +504,8 @@ namespace RDVFSharp.Entities
             if (attacker.IsRestrained) difficulty += 2; //Up the difficulty if the attacker is restrained.
             if (target.IsRestrained) difficulty -= 4; //Lower it if the target is restrained.
             if (target.IsExposed > 0) difficulty -= 2; // If opponent left themself wide open after a failed strong attack, they'll be easier to hit.
+            if (target.HPBurn > 1) difficulty -= 1;
+
 
             if (target.IsEvading > 0)
             {//Evasion bonus from move/teleport. Only applies to one attack, then is reset to 0.
@@ -580,6 +584,7 @@ namespace RDVFSharp.Entities
             var difficulty = 6; //Base difficulty, rolls greater than this amount will hit.
 
             if (target.IsExposed > 0) difficulty -= 2; // If opponent left themself wide open after a failed strong attack, they'll be easier to hit.
+            if (target.HPBurn > 1) difficulty -= 1;
 
             if (target.IsEvading > 0)
             {//Evasion bonus from move/teleport. Only applies to one attack, then is reset to 0.
@@ -663,6 +668,7 @@ namespace RDVFSharp.Entities
             }
 
             if (target.IsExposed > 0) difficulty -= 2; // If opponent left themself wide open after a failed strong attack, they'll be easier to hit.
+            if (target.HPBurn > 1) difficulty -= 1;
 
             if (target.IsEvading > 0)
             {//Evasion bonus from move/teleport. Only applies to one attack, then is reset to 0.
@@ -745,6 +751,7 @@ namespace RDVFSharp.Entities
             var difficulty = 8; //Base difficulty, rolls greater than this amount will hit.
 
             if (target.IsExposed > 0) difficulty -= 2; // If opponent left themself wide open after a failed strong attack, they'll be easier to hit.
+            if (target.HPBurn > 1) difficulty -= 1;
 
             if (target.IsEvading > 0)
             {//Evasion bonus from move/teleport. Only applies to one attack, then is reset to 0.
@@ -802,7 +809,6 @@ namespace RDVFSharp.Entities
             damage = Math.Max(damage, 0);
             if (damage > 0) target.HitHp(damage); //This is to prevent the game displayin that the attacker did 0 damage, which is the normal case.
             target.IsStunned = true;
-            if (attacker.HPBurn > 1) HPBurn += 1;
             return true; //Successful attack, if we ever need to check that.
         }
 
@@ -819,6 +825,7 @@ namespace RDVFSharp.Entities
             if (attacker.IsRestrained) difficulty -= attacker.IsEscaping; //Then reduce difficulty based on how much effort we've put into escaping so far.
             if (target.IsRestrained) difficulty -= 4; //Lower the difficulty considerably if the target is restrained.
             if (target.IsExposed > 0) difficulty -= 2; // If opponent left themself wide open after a failed strong attack, they'll be easier to hit.
+            if (target.HPBurn > 1) difficulty -= 1;
 
             if (target.IsEvading > 0)
             {//Evasion bonus from move/teleport. Only applies to one attack, then is reset to 0.
@@ -925,6 +932,7 @@ namespace RDVFSharp.Entities
                 target.Fumbled = false;
             }
 
+            if (target.HPBurn > 1) difficulty -= 1;
             if (attacker.IsRestrained) difficulty += 4; //Up the difficulty considerably if the attacker is restrained.
             if (target.IsRestrained) difficulty += 4; //Ranged attacks during grapple are hard.
             if (target.IsRestrained) difficulty -= 2; //Lower the difficulty slightly if the target is restrained.
@@ -1016,6 +1024,7 @@ namespace RDVFSharp.Entities
             if (attacker.IsRestrained) difficulty += 2; //Math.max(2, 4 + Math.floor((target.strength() - attacker.strength()) / 2)); //When grappled, up the difficulty based on the relative strength of the combatants. Minimum of +2 difficulty, maximum of +8.
             if (target.IsRestrained) difficulty -= 4; //Lower the difficulty considerably if the target is restrained.
             if (target.IsExposed > 0) difficulty -= 2; // If opponent left themself wide open after a failed strong attack, they'll be easier to hit.
+            if (target.HPBurn > 1) difficulty -= 1;
 
             if (target.IsEvading > 0)
             {//Evasion bonus from move/teleport. Only applies to one attack, then is reset to 0.
@@ -1104,6 +1113,7 @@ namespace RDVFSharp.Entities
             if (attacker.IsRestrained) difficulty += 2; //Math.Max(2, 4 + (int)Math.Floor((double)(target.Strength - attacker.Strength) / 2)); //When grappled, up the difficulty based on the relative strength of the combatants. Minimum of +2 difficulty, maximum of +8.
             if (target.IsRestrained) difficulty -= 4; //Lower the difficulty considerably if the target is restrained.
             if (target.IsExposed > 0) difficulty -= 2; // If opponent left themself wide open after a failed strong attack, they'll be easier to hit.
+            if (target.HPBurn > 1) difficulty -= 1;
 
             if (target.IsEvading > 0)
             {//Evasion bonus from move/teleport. Only applies to one attack, then is reset to 0.
@@ -1192,7 +1202,7 @@ namespace RDVFSharp.Entities
             if (attacker.IsRestrained) difficulty += 2;
             if (target.IsRestrained) difficulty -= 4; //Ranged attacks during grapple are hard, but Hex is now melee.
             if (target.IsExposed > 0) difficulty -= 2; // If opponent left themself wide open after a failed strong attack, they'll be easier to hit.
-
+            if (target.HPBurn > 1) difficulty -= 1;
 
             if (target.IsEvading > 0)
             {//Evasion bonus from move/teleport. Only applies to one attack, then is reset to 0.
@@ -1279,7 +1289,7 @@ namespace RDVFSharp.Entities
             if (attacker.IsRestrained) difficulty += 2; //Math.Max(2, 4 + (int)Math.Floor((double)(target.Strength - attacker.Strength) / 2)); //When grappled, up the difficulty based on the relative strength of the combatants. Minimum of +2 difficulty, maximum of +8.
             if (target.IsRestrained) difficulty -= 4; //Ranged attacks during grapple are hard.
             if (attacker.IsFocused > 0) difficulty -= (int)Math.Ceiling((double)attacker.IsFocused / 10); //Lower the difficulty if the attacker is focused
-
+            if (target.HPBurn > 1) difficulty -= 1;
             if (attacker.IsFocused > 0) damage += (int)Math.Ceiling((double)attacker.IsFocused / 10); //Focus gives bonus damage.
 
             if (target.IsEvading > 0)
@@ -1370,6 +1380,7 @@ namespace RDVFSharp.Entities
             if (attacker.IsRestrained) difficulty += 4; //Math.Max(2, 4 + (int)Math.Floor((double)(target.Strength - attacker.Strength) / 2)); //When grappled, up the difficulty based on the relative strength of the combatants. Minimum of +2 difficulty, maximum of +8.
             if (target.IsRestrained) difficulty += 4; //Ranged attacks during grapple are hard.
             if (attacker.IsFocused > 0) difficulty -= (int)Math.Ceiling((double)attacker.IsFocused / 10); //Lower the difficulty if the attacker is focused
+            if (target.HPBurn > 1) difficulty -= 1;
 
             if (attacker.IsFocused > 0) damage += (int)Math.Ceiling((double)attacker.IsFocused / 10); //Focus gives bonus damage.
 
@@ -1442,7 +1453,7 @@ namespace RDVFSharp.Entities
         {
             var attacker = this;
             var target = Battlefield.GetTarget();
-            var requiredMana = 5;
+            var requiredMana = 10;
             var difficulty = 8; //Base difficulty, rolls greater than this amount will hit.
 
             //If opponent fumbled on their previous action they should become stunned.
@@ -1501,7 +1512,7 @@ namespace RDVFSharp.Entities
 
             {
                 target.HPDOT = (int)Math.Ceiling((double)totalBonus / 2);
-                target.HPBurn = 5;
+                target.HPBurn = 4;
                 Battlefield.WindowController.Hit.Add(attacker.Name + " landed a strike against " + target.Name + " that will do damage over time for 4 turns!");
             }
 
@@ -1518,7 +1529,7 @@ namespace RDVFSharp.Entities
         {
             var attacker = this;
             var target = Battlefield.GetTarget();
-            var requiredStamina = 5;
+            var requiredStamina = 10;
             var difficulty = 8; //Base difficulty, rolls greater than this amount will hit.
 
             //If opponent fumbled on their previous action they should become stunned.
@@ -1577,7 +1588,7 @@ namespace RDVFSharp.Entities
 
             {
                 target.HPDOT = (int)Math.Ceiling((double)totalBonus / 2);
-                target.HPBurn = 5;
+                target.HPBurn = 4;
                 Battlefield.WindowController.Hit.Add(attacker.Name + " landed a strike against " + target.Name + " that will do damage over time for 4 turns!");
             }
 

@@ -75,6 +75,7 @@ namespace RDVFSharp.Entities
         public bool IsDead { get; set; }
         public int CurseUsed { get; set; }
         public bool IsRestrained { get; set; }
+        public bool IsRestraining { get; set; }
         public bool IsDazed { get; set; }
         public int IsStunned { get; set; }
         public int IsDisoriented { get; set; }
@@ -142,6 +143,7 @@ namespace RDVFSharp.Entities
             IsDead = false;
             CurseUsed = 0;
             IsRestrained = false;
+            IsRestraining = true;
             IsDazed = false;
             IsStunned = 0;
             IsDisoriented = 0;
@@ -329,10 +331,7 @@ namespace RDVFSharp.Entities
             if (IsRestrained) TeamBattlefield.WindowController.Hint.Add(Name + " is Grappled.");
             if (IsFocused > 0) TeamBattlefield.WindowController.Hint.Add(Name + " is Focused (" + IsFocused + " points). Focus is reduced by taking damage.");
             if (IsFocused > 0) TeamBattlefield.WindowController.Hint.Add(Name + "'s Ranged and Spell attacks have a +" + Math.Ceiling((double)IsFocused / 10) + " bonus to attack and damage because of the Focus.");
-            if (TeamBattlefield.InGrabRange && TeamBattlefield.DisplayGrabbed)
-            {
-                TeamBattlefield.WindowController.Hint.Add("The fighters are in grappling range."); //Added notification about fighters being in grappling range.
-            }
+            
             TeamBattlefield.DisplayGrabbed = !TeamBattlefield.DisplayGrabbed; //only output it on every two turns
             return message;
         }
@@ -359,6 +358,11 @@ namespace RDVFSharp.Entities
             //    IsFocused = 0;
             //}
 
+
+            
+
+
+
             if (HPBurn > 1)
 
             {
@@ -375,6 +379,11 @@ namespace RDVFSharp.Entities
                 TeamBattlefield.WindowController.Hint.Add(Name + " has a temporary +" + IsEvading + " bonus to evasion and damage reduction.");
             }
 
+            if ((attacker.IsGrabbable == target.IsGrabbable) && (attacker.IsGrabbable > 0) && (attacker.IsGrabbable < 20) & this == target)
+            {
+                TeamBattlefield.WindowController.Hint.Add(attacker.Name + " and " + target.Name + " are in grappling range.");
+            }
+            
             if (IsAggressive > 0)
             {
                 TeamBattlefield.WindowController.Hint.Add(Name + " has a temporary +" + IsAggressive + " bonus to accuracy and attack damage.");
@@ -491,8 +500,9 @@ namespace RDVFSharp.Entities
             if (attacker.IsRestrained) difficulty += 2; //Up the difficulty if the attacker is restrained.
             if (target.IsRestrained) difficulty -= 4; //Lower it if the target is restrained.
             if (target.IsExposed > 0) difficulty -= 2; // If opponent left themself wide open after a failed strong attack, they'll be easier to hit.
+            if (target.HPBurn > 1) difficulty -= 1;
 
-            if (target.IsGuarding > 0)
+                if (target.IsGuarding > 0)
             {//Evasion bonus from move/teleport. Only applies to one attack, then is reset to 0.
                     difficulty += target.IsGuarding; 
                     damage -= target.IsGuarding;
@@ -562,6 +572,8 @@ namespace RDVFSharp.Entities
                 damage = Math.Max(damage, 1);
                 target.HitHp(damage);
                 target.HitStamina(damage);
+                attacker.IsGrabbable = 0;
+                target.IsGrabbable = 0;
                 return true; //Successful attack, if we ever need to check that.
             }
 
@@ -576,6 +588,7 @@ namespace RDVFSharp.Entities
                 if (attacker.IsRestrained) difficulty += 2; //Up the difficulty if the attacker is restrained.
                 if (othertarget.IsRestrained) difficulty -= 4; //Lower it if the target is restrained.
                 if (othertarget.IsExposed > 0) difficulty -= 2; // If opponent left themself wide open after a failed strong attack, they'll be easier to hit.
+                if (othertarget.HPBurn > 1) difficulty -= 1;
 
                 if (othertarget.IsGuarding > 0)
                 {//Evasion bonus from move/teleport. Only applies to one attack, then is reset to 0.
@@ -645,6 +658,8 @@ namespace RDVFSharp.Entities
                 if (attacker.IsRestrained) attacker.IsEscaping += (int)Math.Floor((double)damage / 5); damage = Math.Max(damage, 1);
                 othertarget.HitHp(damage);
                 othertarget.HitStamina(damage);
+                attacker.IsGrabbable = 0;
+                othertarget.IsGrabbable = 0;
                 return true; //Successful attack, if we ever need to check that.
             }
         }
@@ -672,6 +687,7 @@ namespace RDVFSharp.Entities
                 if (attacker.IsRestrained) difficulty += 2; //Up the difficulty if the attacker is restrained.
                 if (target.IsRestrained) difficulty -= 4; //Lower it if the target is restrained.
                 if (target.IsExposed > 0) difficulty -= 2; // If opponent left themself wide open after a failed strong attack, they'll be easier to hit.
+                if (target.HPBurn > 1) difficulty -= 1;
 
                 if (target.IsEvading > 0)
                 {//Evasion bonus from move/teleport. Only applies to one attack, then is reset to 0.
@@ -746,6 +762,8 @@ namespace RDVFSharp.Entities
 
                 damage = Math.Max(damage, 1);
                 target.HitHp(damage);
+                attacker.IsGrabbable = 0;
+                target.IsGrabbable = 0;
                 return true; //Successful attack, if we ever need to check that.
             }
             else
@@ -759,6 +777,7 @@ namespace RDVFSharp.Entities
                 if (attacker.IsRestrained) difficulty += 2; //Up the difficulty if the attacker is restrained.
                 if (othertarget.IsRestrained) difficulty -= 4; //Lower it if the target is restrained.
                 if (othertarget.IsExposed > 0) difficulty -= 2; // If opponent left themself wide open after a failed strong attack, they'll be easier to hit.
+                if (othertarget.HPBurn > 1) difficulty -= 1;
 
                 if (othertarget.IsEvading > 0)
                 {//Evasion bonus from move/teleport. Only applies to one attack, then is reset to 0.
@@ -832,6 +851,8 @@ namespace RDVFSharp.Entities
 
                 damage = Math.Max(damage, 1);
                 othertarget.HitHp(damage);
+                attacker.IsGrabbable = 0;
+                othertarget.IsGrabbable = 0;
                 return true; //Successful attack, if we ever need to check that.
                              }
             }
@@ -847,11 +868,13 @@ namespace RDVFSharp.Entities
             var requiredStam = 5;
             var difficulty = 6; //Base difficulty, rolls greater than this amount will hit.
 
-
+            
             if (target.IsDead == false)
 
             {
                 if (target.IsExposed > 0) difficulty -= 2; // If opponent left themself wide open after a failed strong attack, they'll be easier to hit.
+                if (target.HPBurn > 1) difficulty -= 1;
+
 
                 if (target.IsEvading > 0)
                 {//Evasion bonus from move/teleport. Only applies to one attack, then is reset to 0.
@@ -924,12 +947,16 @@ namespace RDVFSharp.Entities
 
                 damage = Math.Max(damage, 1);
                 target.HitHp(damage);
+                attacker.IsRestraining = true;
+                attacker.IsGrabbable = 40;
+                target.IsGrabbable = 40;
                 return true; //Successful attack, if we ever need to check that.
             }
 
             else
             {
                 if (othertarget.IsExposed > 0) difficulty -= 2; // If opponent left themself wide open after a failed strong attack, they'll be easier to hit.
+                if (othertarget.HPBurn > 1) difficulty -= 1;
 
                 if (othertarget.IsEvading > 0)
                 {//Evasion bonus from move/teleport. Only applies to one attack, then is reset to 0.
@@ -1003,6 +1030,9 @@ namespace RDVFSharp.Entities
 
                 damage = Math.Max(damage, 1);
                 othertarget.HitHp(damage);
+                attacker.IsRestraining = true;
+                attacker.IsGrabbable = 40;
+                othertarget.IsGrabbable = 40;
                 return true; //Successful attack, if we ever need to check that.
             }
         
@@ -1018,6 +1048,7 @@ namespace RDVFSharp.Entities
             var difficulty = 10; //Base difficulty, rolls greater than this amount will hit.
             difficulty += (int)Math.Floor((double)(target.Strength - attacker.Strength) / 2); //Up the difficulty of submission moves based on the relative strength of the combatants.
             //difficulty *= (int)Math.Ceiling((double)2 * target.HP / target.MaxHP);//Multiply difficulty with percentage of opponent's health and 2, so that 50% health yields normal difficulty.
+            
 
             if (target.HP * 100 / target.MaxHP > 50) // If target is above 50% HP this is a bad move.
             {
@@ -1026,6 +1057,7 @@ namespace RDVFSharp.Entities
             }
 
             if (target.IsExposed > 0) difficulty -= 2; // If opponent left themself wide open after a failed strong attack, they'll be easier to hit.
+            if (target.HPBurn > 1) difficulty -= 1;
 
             if (target.IsEvading > 0)
             {//Evasion bonus from move/teleport. Only applies to one attack, then is reset to 0.
@@ -1112,7 +1144,7 @@ namespace RDVFSharp.Entities
 
             {
                 if (target.IsExposed > 0) difficulty -= 2; // If opponent left themself wide open after a failed strong attack, they'll be easier to hit.
-
+                if (target.HPBurn > 1) difficulty -= 1;
                 if (target.IsEvading > 0)
                 {//Evasion bonus from move/teleport. Only applies to one attack, then is reset to 0.
                     difficulty += target.IsEvading;
@@ -1221,6 +1253,7 @@ namespace RDVFSharp.Entities
             else
             {
                 if (othertarget.IsExposed > 0) difficulty -= 2; // If opponent left themself wide open after a failed strong attack, they'll be easier to hit.
+                if (othertarget.HPBurn > 1) difficulty -= 1;
 
                 if (othertarget.IsEvading > 0)
                 {//Evasion bonus from move/teleport. Only applies to one attack, then is reset to 0.
@@ -1340,6 +1373,7 @@ namespace RDVFSharp.Entities
             if (attacker.IsRestrained) difficulty -= attacker.IsEscaping; //Then reduce difficulty based on how much effort we've put into escaping so far.
             if (target.IsRestrained) difficulty -= 4; //Lower the difficulty considerably if the target is restrained.
             if (target.IsExposed > 0) difficulty -= 2; // If opponent left themself wide open after a failed strong attack, they'll be easier to hit.
+            if (target.HPBurn > 1) difficulty -= 1;
 
             if (target.IsEvading > 0)
             {//Evasion bonus from move/teleport. Only applies to one attack, then is reset to 0.
@@ -1399,15 +1433,21 @@ namespace RDVFSharp.Entities
 
             if (attacker.IsGrappling(target))
             {
+
+                attacker.IsRestraining = false;
                 target.RemoveGrappler(attacker);
+                target.IsRestrained = false;
                 TeamBattlefield.InGrabRange = false;//A throw will put the fighters out of grappling range.
                 if (target.IsGrappling(attacker))
                 {
                     attacker.RemoveGrappler(target);
+                    target.IsRestraining = false;
+                    attacker.IsRestrained = false;
                     TeamBattlefield.WindowController.Hit.Add(attacker.Name + " gained the upper hand and THREW " + target.Name + "! " + attacker.Name + " can make another move! " + attacker.Name + " is no longer at a penalty from being grappled!");
                 }
                 else
                 {
+                    target.IsRestrained = false;
                     damage += Math.Max(0, 10 - target.IsEscaping);
                     TeamBattlefield.WindowController.Hit.Add(attacker.Name + " THREW " + target.Name + " and dealt bonus damage!");
                 }
@@ -1415,7 +1455,9 @@ namespace RDVFSharp.Entities
             }
             else if (target.IsGrappling(attacker))
             {
+                target.IsRestraining = false; 
                 attacker.RemoveGrappler(target);
+                attacker.IsRestrained = false;
                 TeamBattlefield.InGrabRange = false;//A throw will put the fighters out of grappling range.
                 TeamBattlefield.WindowController.Hit.Add(attacker.Name + " found a hold and THREW " + target.Name + " off! " + attacker.Name + " is no longer at a penalty from being grappled!");
                 //Battlefield.WindowController.Hint.Add(target.Name + ", you should make your post, but you should only emote being hit, do not try to perform any other actions.");
@@ -1431,7 +1473,8 @@ namespace RDVFSharp.Entities
 
             damage = Math.Max(damage, 1);
             target.HitHp(damage);
-            //target.IsStunned = true;
+            attacker.IsGrabbable = 0;
+            target.IsGrabbable = 0;
             return true; //Successful attack, if we ever need to check that.
         }
 
@@ -1464,6 +1507,7 @@ namespace RDVFSharp.Entities
                 if (target.IsRestrained) difficulty += 4; //Ranged attacks during grapple are hard.
                 if (target.IsRestrained) difficulty -= 2; //Lower the difficulty slightly if the target is restrained.
                 if (attacker.IsFocused > 0) difficulty -= (int)Math.Ceiling((double)attacker.IsFocused / 10); //Lower the difficulty considerably if the attacker is focused
+                if (target.HPBurn > 1) difficulty -= 1;
 
                 if (attacker.IsFocused > 0) damage += (int)Math.Ceiling((double)attacker.IsFocused / 10); //Focus gives bonus damage.
 
@@ -1538,6 +1582,8 @@ namespace RDVFSharp.Entities
 
                 damage = Math.Max(damage, 1);
                 target.HitHp(damage);
+                attacker.IsGrabbable = 0;
+                target.IsGrabbable = 0;
                 return true; //Successful attack, if we ever need to check that.
             }
 
@@ -1554,6 +1600,7 @@ namespace RDVFSharp.Entities
                 if (othertarget.IsRestrained) difficulty += 4; //Ranged attacks during grapple are hard.
                 if (othertarget.IsRestrained) difficulty -= 2; //Lower the difficulty slightly if the target is restrained.
                 if (attacker.IsFocused > 0) difficulty -= (int)Math.Ceiling((double)attacker.IsFocused / 10); //Lower the difficulty considerably if the attacker is focused
+                if (othertarget.HPBurn > 1) difficulty -= 1;
 
                 if (attacker.IsFocused > 0) damage += (int)Math.Ceiling((double)attacker.IsFocused / 10); //Focus gives bonus damage.
 
@@ -1628,6 +1675,8 @@ namespace RDVFSharp.Entities
 
                 damage = Math.Max(damage, 1);
                 othertarget.HitHp(damage);
+                attacker.IsGrabbable = 0;
+                othertarget.IsGrabbable = 0;
                 return true; //Successful attack, if we ever need to check that.
             }
         }
@@ -1658,6 +1707,7 @@ namespace RDVFSharp.Entities
                 if (attacker.IsRestrained) difficulty += 2; //Math.max(2, 4 + Math.floor((target.strength() - attacker.strength()) / 2)); //When grappled, up the difficulty based on the relative strength of the combatants. Minimum of +2 difficulty, maximum of +8.
                 if (target.IsRestrained) difficulty -= 4; //Lower the difficulty considerably if the target is restrained.
                 if (target.IsExposed > 0) difficulty -= 2; // If opponent left themself wide open after a failed strong attack, they'll be easier to hit.
+                if (target.HPBurn > 1) difficulty -= 1;
 
                 if (target.IsEvading > 0)
                 {//Evasion bonus from move/teleport. Only applies to one attack, then is reset to 0.
@@ -1733,6 +1783,8 @@ namespace RDVFSharp.Entities
 
                 damage = Math.Max(damage, 1);
                 target.HitHp(damage);
+                attacker.IsGrabbable = 0;
+                target.IsGrabbable = 0;
                 return true; //Successful attack, if we ever need to check that.
             }
 
@@ -1748,6 +1800,7 @@ namespace RDVFSharp.Entities
                 if (attacker.IsRestrained) difficulty += 2; //Math.max(2, 4 + Math.floor((othertarget.strength() - attacker.strength()) / 2)); //When grappled, up the difficulty based on the relative strength of the combatants. Minimum of +2 difficulty, maximum of +8.
                 if (othertarget.IsRestrained) difficulty -= 4; //Lower the difficulty considerably if the target is restrained.
                 if (othertarget.IsExposed > 0) difficulty -= 2; // If opponent left themself wide open after a failed strong attack, they'll be easier to hit.
+                if (othertarget.HPBurn > 1) difficulty -= 1;
 
                 if (othertarget.IsEvading > 0)
                 {//Evasion bonus from move/teleport. Only applies to one attack, then is reset to 0.
@@ -1823,6 +1876,8 @@ namespace RDVFSharp.Entities
 
                 damage = Math.Max(damage, 1);
                 othertarget.HitHp(damage);
+                attacker.IsGrabbable = 0;
+                othertarget.IsGrabbable = 0;
                 return true; //Successful attack, if we ever need to check that.
 
             }
@@ -1852,6 +1907,7 @@ namespace RDVFSharp.Entities
             if (attacker.IsRestrained) difficulty += 2;
             if (target.IsRestrained) difficulty -= 4; //Ranged attacks during grapple are hard, but Hex is now melee.
             if (target.IsExposed > 0) difficulty -= 2; // If opponent left themself wide open after a failed strong attack, they'll be easier to hit.
+            if (target.HPBurn > 1) difficulty -= 1;
 
 
             if (target.IsEvading > 0)
@@ -1927,7 +1983,9 @@ namespace RDVFSharp.Entities
             damage = Math.Max(damage, 1);
             target.HitHp(damage);
             target.HitMana(damage);
-            return true; //Successful attack, if we ever need to check that.
+            attacker.IsGrabbable = 0;
+            target.IsGrabbable = 0;
+                return true; //Successful attack, if we ever need to check that.
             }
 
             else
@@ -1942,7 +2000,7 @@ namespace RDVFSharp.Entities
                 if (attacker.IsRestrained) difficulty += 2;
                 if (othertarget.IsRestrained) difficulty -= 4; //Ranged attacks during grapple are hard, but Hex is now melee.
                 if (othertarget.IsExposed > 0) difficulty -= 2; // If opponent left themself wide open after a failed strong attack, they'll be easier to hit.
-
+                if (othertarget.HPBurn > 1) difficulty -= 1;
 
                 if (othertarget.IsEvading > 0)
                 {//Evasion bonus from move/teleport. Only applies to one attack, then is reset to 0.
@@ -2016,7 +2074,9 @@ namespace RDVFSharp.Entities
 
                 damage = Math.Max(damage, 1);
                 othertarget.HitHp(damage);
-                othertarget.HitMana(damage);
+                othertarget.HitMana(damage); 
+                attacker.IsGrabbable = 0;
+                othertarget.IsGrabbable = 0;
                 return true; //Successful attack, if we ever need to check that.
 
             }
@@ -2045,6 +2105,8 @@ namespace RDVFSharp.Entities
                 if (attacker.IsRestrained) difficulty += 2; //Math.Max(2, 4 + (int)Math.Floor((double)(target.Strength - attacker.Strength) / 2)); //When grappled, up the difficulty based on the relative strength of the combatants. Minimum of +2 difficulty, maximum of +8.
                 if (target.IsRestrained) difficulty -= 4; //Ranged attacks during grapple are hard.
                 if (attacker.IsFocused > 0) difficulty -= (int)Math.Ceiling((double)attacker.IsFocused / 10); //Lower the difficulty if the attacker is focused
+                if (target.HPBurn > 1) difficulty -= 1;
+
 
                 if (attacker.IsFocused > 0) damage += (int)Math.Ceiling((double)attacker.IsFocused / 10); //Focus gives bonus damage.
 
@@ -2122,6 +2184,8 @@ namespace RDVFSharp.Entities
                 damage = Math.Max(damage, 1);
                 target.HitHp(damage);
                 attacker.CurseUsed += 10;
+                attacker.IsGrabbable = 0;
+                target.IsGrabbable = 0;
                 return true; //Successful attack, if we ever need to check that.
             }
 
@@ -2137,6 +2201,7 @@ namespace RDVFSharp.Entities
                 if (attacker.IsRestrained) difficulty += 2; //Math.Max(2, 4 + (int)Math.Floor((double)(othertarget.Strength - attacker.Strength) / 2)); //When grappled, up the difficulty based on the relative strength of the combatants. Minimum of +2 difficulty, maximum of +8.
                 if (othertarget.IsRestrained) difficulty -= 4; //Ranged attacks during grapple are hard.
                 if (attacker.IsFocused > 0) difficulty -= (int)Math.Ceiling((double)attacker.IsFocused / 10); //Lower the difficulty if the attacker is focused
+                if (othertarget.HPBurn > 1) difficulty -= 1;
 
                 if (attacker.IsFocused > 0) damage += (int)Math.Ceiling((double)attacker.IsFocused / 10); //Focus gives bonus damage.
 
@@ -2213,6 +2278,8 @@ namespace RDVFSharp.Entities
                 damage = Math.Max(damage, 1);
                 othertarget.HitHp(damage);
                 attacker.CurseUsed += 10;
+                attacker.IsGrabbable = 0;
+                othertarget.IsGrabbable = 0;
                 return true; //Successful attack, if we ever need to check that.
             }
         }
@@ -2243,6 +2310,7 @@ namespace RDVFSharp.Entities
                 if (attacker.IsRestrained) difficulty += 4; //Math.Max(2, 4 + (int)Math.Floor((double)(target.Strength - attacker.Strength) / 2)); //When grappled, up the difficulty based on the relative strength of the combatants. Minimum of +2 difficulty, maximum of +8.
                 if (target.IsRestrained) difficulty += 4; //Ranged attacks during grapple are hard.
                 if (attacker.IsFocused > 0) difficulty -= (int)Math.Ceiling((double)attacker.IsFocused / 10); //Lower the difficulty if the attacker is focused
+                if (target.HPBurn > 1) difficulty -= 1;
 
                 if (attacker.IsFocused > 0) damage += (int)Math.Ceiling((double)attacker.IsFocused / 10); //Focus gives bonus damage.
 
@@ -2319,6 +2387,8 @@ namespace RDVFSharp.Entities
 
                 damage = Math.Max(damage, 1);
                 target.HitHp(damage);
+                attacker.IsGrabbable = 0;
+                target.IsGrabbable = 0;
                 return true; //Successful attack, if we ever need to check that.
             }
 
@@ -2334,6 +2404,7 @@ namespace RDVFSharp.Entities
                 if (attacker.IsRestrained) difficulty += 4; //Math.Max(2, 4 + (int)Math.Floor((double)(othertarget.Strength - attacker.Strength) / 2)); //When grappled, up the difficulty based on the relative strength of the combatants. Minimum of +2 difficulty, maximum of +8.
                 if (othertarget.IsRestrained) difficulty += 4; //Ranged attacks during grapple are hard.
                 if (attacker.IsFocused > 0) difficulty -= (int)Math.Ceiling((double)attacker.IsFocused / 10); //Lower the difficulty if the attacker is focused
+                if (othertarget.HPBurn > 1) difficulty -= 1;
 
                 if (attacker.IsFocused > 0) damage += (int)Math.Ceiling((double)attacker.IsFocused / 10); //Focus gives bonus damage.
 
@@ -2409,6 +2480,8 @@ namespace RDVFSharp.Entities
 
                 damage = Math.Max(damage, 1);
                 othertarget.HitHp(damage);
+                attacker.IsGrabbable = 0;
+                othertarget.IsGrabbable = 0;
                 return true; //Successful attack, if we ever need to check that.
             }
         }
@@ -2438,6 +2511,7 @@ namespace RDVFSharp.Entities
                 if (attacker.IsRestrained) difficulty += 4; //Math.Max(2, 4 + (int)Math.Floor((double)(target.Strength - attacker.Strength) / 2)); //When grappled, up the difficulty based on the relative strength of the combatants. Minimum of +2 difficulty, maximum of +8.
                 if (target.IsRestrained) difficulty += 4; //Ranged attacks during grapple are hard.
                 if (attacker.IsFocused > 0) difficulty -= (int)Math.Ceiling((double)attacker.IsFocused / 10); //Lower the difficulty if the attacker is focused
+                if (target.HPBurn > 1) difficulty -= 1;
 
                 if (attacker.IsFocused > 0) damage += (int)Math.Ceiling((double)attacker.IsFocused / 10); //Focus gives bonus damage.
 
@@ -2515,6 +2589,9 @@ namespace RDVFSharp.Entities
                 damage = Math.Max(damage, 1);
                 target.HitHp(damage);
                 othertarget.HitHp(damage / 2);
+                attacker.IsGrabbable = 0;
+                target.IsGrabbable = 0;
+                othertarget.IsGrabbable = 0;
                 return true; //Successful attack, if we ever need to check that.
             }
 
@@ -2529,6 +2606,7 @@ namespace RDVFSharp.Entities
                 if (attacker.IsRestrained) difficulty += 4; //Math.Max(2, 4 + (int)Math.Floor((double)(othertarget.Strength - attacker.Strength) / 2)); //When grappled, up the difficulty based on the relative strength of the combatants. Minimum of +2 difficulty, maximum of +8.
                 if (othertarget.IsRestrained) difficulty += 4; //Ranged attacks during grapple are hard.
                 if (attacker.IsFocused > 0) difficulty -= (int)Math.Ceiling((double)attacker.IsFocused / 10); //Lower the difficulty if the attacker is focused
+                if (othertarget.HPBurn > 1) difficulty -= 1;
 
                 if (attacker.IsFocused > 0) damage += (int)Math.Ceiling((double)attacker.IsFocused / 10); //Focus gives bonus damage.
 
@@ -2606,6 +2684,9 @@ namespace RDVFSharp.Entities
                 damage = Math.Max(damage, 1);
                 othertarget.HitHp(damage);
                 target.HitHp(damage / 2);
+                attacker.IsGrabbable = 0;
+                target.IsGrabbable = 0;
+                othertarget.IsGrabbable = 0;
                 return true; //Successful attack, if we ever need to check that.
             }
         }
@@ -2632,9 +2713,9 @@ namespace RDVFSharp.Entities
             if (attacker.IsRestrained) difficulty += 4; //Math.Max(2, 4 + (int)Math.Floor((double)(target.Strength - attacker.Strength) / 2)); //When grappled, up the difficulty based on the relative strength of the combatants. Minimum of +2 difficulty, maximum of +8.
             if (target.IsRestrained) difficulty += 4; //Ranged attacks during grapple are hard.
             if (attacker.IsFocused > 0) difficulty -= (int)Math.Ceiling((double)attacker.IsFocused / 10); //Lower the difficulty if the attacker is focused
+            if (target.HPBurn > 1) difficulty -= 1;
 
-            if (attacker.IsFocused > 0) damage += (int)Math.Ceiling((double)attacker.IsFocused / 10); //Focus gives bonus damage.
-
+            
             if (target.IsEvading > 0)
             {//Evasion bonus from move/teleport. Only applies to one attack, then is reset to 0.
                 difficulty += target.IsEvading / 2;//Half effect on ranged attacks.
@@ -2709,6 +2790,9 @@ namespace RDVFSharp.Entities
             damage = Math.Max(damage, 1);
             target.HitHp(damage * 3 / 4);
             othertarget.HitHp(damage * 3 / 4);
+            attacker.IsGrabbable = 0;
+            target.IsGrabbable = 0;
+            othertarget.IsGrabbable = 0;
             return true; //Successful attack, if we ever need to check that.
         }
 
@@ -2718,11 +2802,16 @@ namespace RDVFSharp.Entities
             var target = TeamBattlefield.GetTarget();
             var partner = TeamBattlefield.GetPartner();
             var othertarget = TeamBattlefield.GetOther();
-            var requiredMana = 5;
+            var requiredMana = 10;
             var difficulty = 8; //Base difficulty, rolls greater than this amount will hit.
 
+
+            
+
             if (target.IsDead == false)
-            { 
+            {
+
+
                 //If opponent fumbled on their previous action they should become stunned.
                 if (target.Fumbled)
             {
@@ -2730,7 +2819,12 @@ namespace RDVFSharp.Entities
                 target.Fumbled = false;
             }
 
-            if (target.IsEvading > 0)
+                if (attacker.IsRestrained) difficulty += 2; //Up the difficulty if the attacker is restrained.
+                if (target.IsRestrained) difficulty -= 4; //Lower it if the target is restrained.
+                if (target.IsExposed > 0) difficulty -= 2; // If opponent left themself wide open after a failed strong attack, they'll be easier to hit.
+                if (target.HPBurn > 1) difficulty -= 1;
+
+                if (target.IsEvading > 0)
             {//Evasion bonus from move/teleport. Only applies to one attack, then is reset to 0.
              //Not affected by opponent's evasion bonus.
                 difficulty += target.IsEvading;
@@ -2785,18 +2879,18 @@ namespace RDVFSharp.Entities
 
             {
                 target.HPDOT = (int)Math.Ceiling((double)totalBonus / 2);
-                target.HPBurn = (5);
+                target.HPBurn = (4);
                 TeamBattlefield.WindowController.Hit.Add(attacker.Name + " landed a strike against " + target.Name + " that will do damage over time for 4 turns!");
             }
 
             if (TeamBattlefield.InGrabRange)
             {
                 TeamBattlefield.WindowController.Hit.Add(attacker.Name + " moved away!");
-                TeamBattlefield.InGrabRange = false;
                 TeamBattlefield.WindowController.Hint.Add(attacker.Name + " managed to put some distance between them and " + target.Name + " and is now out of grabbing range.");
             }
-
-            return true; //Successful attack, if we ever need to check that.
+                attacker.IsGrabbable = 0;
+                target.IsGrabbable = 0;
+                return true; //Successful attack, if we ever need to check that.
             }
 
             else
@@ -2807,6 +2901,11 @@ namespace RDVFSharp.Entities
                     othertarget.IsDazed = true;
                     othertarget.Fumbled = false;
                 }
+
+                if (attacker.IsRestrained) difficulty += 2; //Up the difficulty if the attacker is restrained.
+                if (othertarget.IsRestrained) difficulty -= 4; //Lower it if the target is restrained.
+                if (othertarget.IsExposed > 0) difficulty -= 2; // If opponent left themself wide open after a failed strong attack, they'll be easier to hit.
+                if (othertarget.HPBurn > 1) difficulty -= 1;
 
                 if (othertarget.IsEvading > 0)
                 {//Evasion bonus from move/teleport. Only applies to one attack, then is reset to 0.
@@ -2862,7 +2961,7 @@ namespace RDVFSharp.Entities
 
                 {
                     othertarget.HPDOT = (int)Math.Ceiling((double)totalBonus / 2);
-                    othertarget.HPBurn = (5);
+                    othertarget.HPBurn = (4);
                     TeamBattlefield.WindowController.Hit.Add(attacker.Name + " landed a critical strike against " + othertarget.Name + " and will do damage over time for 4 turns!");
                 }
 
@@ -2872,6 +2971,8 @@ namespace RDVFSharp.Entities
                     TeamBattlefield.InGrabRange = false;
                     TeamBattlefield.WindowController.Hint.Add(attacker.Name + " managed to put some distance between them and " + othertarget.Name + " and is now out of grabbing range.");
                 }
+                attacker.IsGrabbable = 0;
+                othertarget.IsGrabbable = 0;
 
                 return true; //Successful attack, if we ever need to check that.
             }
@@ -2882,7 +2983,7 @@ namespace RDVFSharp.Entities
             var target = TeamBattlefield.GetTarget();
             var partner = TeamBattlefield.GetPartner();
             var othertarget = TeamBattlefield.GetOther();
-            var requiredStamina = 5;
+            var requiredStamina = 10;
             var difficulty = 8; //Base difficulty, rolls greater than this amount will hit.
 
 
@@ -2895,7 +2996,12 @@ namespace RDVFSharp.Entities
                 target.Fumbled = false;
             }
 
-            if (target.IsEvading > 0)
+                if (attacker.IsRestrained) difficulty += 2; //Up the difficulty if the attacker is restrained.
+                if (target.IsRestrained) difficulty -= 4; //Lower it if the target is restrained.
+                if (target.IsExposed > 0) difficulty -= 2; // If opponent left themself wide open after a failed strong attack, they'll be easier to hit.
+                if (target.HPBurn > 1) difficulty -= 1;
+
+                if (target.IsEvading > 0)
             {//Evasion bonus from move/teleport. Only applies to one attack, then is reset to 0.
              //Not affected by opponent's evasion bonus.
                 difficulty += target.IsEvading;
@@ -2950,7 +3056,7 @@ namespace RDVFSharp.Entities
 
             {
                 target.HPDOT = (int)Math.Ceiling((double)totalBonus / 2);
-                target.HPBurn = (5);
+                target.HPBurn = (4);
                     TeamBattlefield.WindowController.Hit.Add(attacker.Name + " landed a strike against " + target.Name + " that will do damage over time for 4 turns!");
                 }
 
@@ -2960,8 +3066,9 @@ namespace RDVFSharp.Entities
                 TeamBattlefield.InGrabRange = false;
                 TeamBattlefield.WindowController.Hint.Add(attacker.Name + " managed to put some distance between them and " + target.Name + " and is now out of grabbing range.");
             }
-
-            return true; //Successful attack, if we ever need to check that.
+                attacker.IsGrabbable = 0;
+                target.IsGrabbable = 0;
+                return true; //Successful attack, if we ever need to check that.
             }
             else
             {
@@ -2971,6 +3078,12 @@ namespace RDVFSharp.Entities
                     othertarget.IsDazed = true;
                     othertarget.Fumbled = false;
                 }
+
+                if (attacker.IsRestrained) difficulty += 2; //Up the difficulty if the attacker is restrained.
+                if (othertarget.IsRestrained) difficulty -= 4; //Lower it if the target is restrained.
+                if (othertarget.IsExposed > 0) difficulty -= 2; // If opponent left themself wide open after a failed strong attack, they'll be easier to hit.
+                if (othertarget.HPBurn > 1) difficulty -= 1;
+
 
                 if (othertarget.IsEvading > 0)
                 {//Evasion bonus from move/teleport. Only applies to one attack, then is reset to 0.
@@ -3027,7 +3140,7 @@ namespace RDVFSharp.Entities
 
                 {
                     othertarget.HPDOT = (int)Math.Ceiling((double)totalBonus / 2);
-                    othertarget.HPBurn = (5);
+                    othertarget.HPBurn = (4);
                     TeamBattlefield.WindowController.Hit.Add(attacker.Name + " landed a critical strike against " + othertarget.Name + " and will do damage over time for 4 turns!");
                 }
 
@@ -3037,6 +3150,8 @@ namespace RDVFSharp.Entities
                     TeamBattlefield.InGrabRange = false;
                     TeamBattlefield.WindowController.Hint.Add(attacker.Name + " managed to put some distance between them and " + othertarget.Name + " and is now out of grabbing range.");
                 }
+                attacker.IsGrabbable = 0;
+                othertarget.IsGrabbable = 0;
 
                 return true; //Successful attack, if we ever need to check that.
                 }
@@ -3312,6 +3427,7 @@ namespace RDVFSharp.Entities
             if (attacker.IsGrappling(target))
             { //If you're grappling someone they are freed, regardless of the outcome.
                 TeamBattlefield.WindowController.Hint.Add(attacker.Name + " used ESCAPE. " + target.Name + " is no longer being grappled. ");
+                attacker.IsRestraining = false; 
                 target.RemoveGrappler(attacker);
                 tempGrappleFlag = false;
             }
@@ -3344,6 +3460,7 @@ namespace RDVFSharp.Entities
             if (target.IsGrappling(attacker))
             { //If you were being grappled, you get free.
                 TeamBattlefield.WindowController.Hint.Add(attacker.Name + " escaped " + target.Name + "'s hold! ");
+                target.IsRestraining = false; 
                 attacker.RemoveGrappler(target);
                 tempGrappleFlag = false;
                 attacker.IsEvading = (int)Math.Floor((double)totalBonus / 2);
@@ -3360,6 +3477,8 @@ namespace RDVFSharp.Entities
                 TeamBattlefield.InGrabRange = false;
                 TeamBattlefield.WindowController.Hint.Add(attacker.Name + " managed to put some distance between them and " + target.Name + " and is now out of grabbing range.");
             }
+            attacker.IsGrabbable = 0;
+            
             return true; //Successful attack, if we ever need to check that.
         }
 
@@ -3499,6 +3618,7 @@ namespace RDVFSharp.Entities
             if (attacker.IsGrappling(target))
             { //If you're grappling someone they are freed, regardless of the outcome.
                 TeamBattlefield.WindowController.Hint.Add(attacker.Name + " used ESCAPE. " + target.Name + " is no longer being grappled. ");
+                attacker.IsRestraining = false; 
                 target.RemoveGrappler(attacker);
                 tempGrappleFlag = false;
             }
@@ -3531,6 +3651,7 @@ namespace RDVFSharp.Entities
             if (target.IsGrappling(attacker))
             { //If you were being grappled, you get free.
                 TeamBattlefield.WindowController.Hint.Add(attacker.Name + " escaped " + target.Name + "'s hold! ");
+                target.IsRestraining = false; 
                 attacker.RemoveGrappler(target);
                 tempGrappleFlag = false;
                 attacker.IsEvading = (int)Math.Floor((double)totalBonus / 2);
@@ -3547,6 +3668,7 @@ namespace RDVFSharp.Entities
                 TeamBattlefield.InGrabRange = false;
                 TeamBattlefield.WindowController.Hint.Add(attacker.Name + " managed to put some distance between them and " + target.Name + " and is now out of grabbing range.");
             }
+            attacker.IsGrabbable = 0;
 
             return true; //Successful attack, if we ever need to check that.
         }

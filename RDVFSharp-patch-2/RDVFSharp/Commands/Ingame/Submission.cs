@@ -9,9 +9,14 @@ namespace RDVFSharp.Commands
             if (Plugin.CurrentTeamBattlefield.IsActive)
 
             {
-                if (Plugin.CurrentTeamBattlefield.GetTarget().IsRestrained && Plugin.CurrentTeamBattlefield.GetActor().IsGrabbable == Plugin.CurrentTeamBattlefield.GetTarget().IsGrabbable)
+                if (Plugin.CurrentTeamBattlefield.GetTarget().IsRestrained && Plugin.CurrentTeamBattlefield.GetActor().IsRestraining)
                 {
                     base.ExecuteCommand(character, args, channel);
+                }
+
+                else
+                {
+                    Plugin.FChatClient.SendMessageInChannel("You can only use Submission if you are grappling your opponent.", Plugin.Channel);
                 }
             }
 
@@ -22,11 +27,16 @@ namespace RDVFSharp.Commands
                 {
                     base.ExecuteCommand(character, args, channel);
                 }
+
+                else
+                {
+                    Plugin.FChatClient.SendMessageInChannel("You can only use Submission if you are grappling your opponent.", Plugin.Channel);
+                }
             }
 
             else
             {
-                Plugin.FChatClient.SendMessageInChannel("You can only use Submission if you are grappling your opponent.", Plugin.Channel);
+                Plugin.FChatClient.SendMessageInChannel("There is no fight going on right now.", Plugin.Channel);
             }
         }
     }

@@ -41,7 +41,7 @@ namespace RDVFSharp
 
         public void ResetFight(Battlefield currentBattlefield = null)
         {
-            if(currentBattlefield != null)
+            if (currentBattlefield != null)
             {
                 CurrentBattlefield = currentBattlefield;
             }
@@ -49,7 +49,7 @@ namespace RDVFSharp
             {
                 CurrentBattlefield = new Battlefield(this);
             }
-            
+
             FirstFighter = null;
             SecondFighter = null;
         }

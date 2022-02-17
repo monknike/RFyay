@@ -270,7 +270,14 @@ namespace RDVFSharp
                 (currentTeamFighter < 3) currentTeamFighter -= 1; 
 
             else
-             currentTeamFighter = 0; 
+             currentTeamFighter = 0;
+
+
+            if (TeamFighters[currentTeamFighter].HPBurn > 0 && TeamFighters[currentTeamFighter].IsStunned < 2)
+            {
+                TeamFighters[currentTeamFighter].HPBurn -= 1;
+
+            }
 
             if (TeamFighters[currentTeamFighter].IsDazed)
             {
@@ -284,11 +291,6 @@ namespace RDVFSharp
                 NextFighter();
             }
 
-            if (TeamFighters[currentTeamFighter].HPBurn > 0)
-            {
-                TeamFighters[currentTeamFighter].HPBurn -= 1;
-
-            }
         }
 
         public void PickInitialActor()
