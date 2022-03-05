@@ -731,7 +731,7 @@ namespace RDVFSharp.Entities
                 {   //Miss-- no effect.
                     TeamBattlefield.WindowController.Hit.Add(" FAILED! ");
                     attacker.IsExposed += 4; //If the fighter misses a big attack, it leaves them open and they have to recover balance which gives the opponent a chance to strike.
-                    TeamBattlefield.WindowController.Hint.Add(attacker.Name + " was left wide open by the failed attack and is now Exposed! " + target.Name + " has -2 difficulty to hit and can use Grab even if fighters are not in grappling range!");
+                    TeamBattlefield.WindowController.Hint.Add(attacker.Name + " was left wide open by the failed attack and is now Exposed! Any attacks against " + attacker.Name + " have -2 difficulty to hit, and they can be Grabbed even if fighters are not in grappling range!");
                     return false; //Failed attack, if we ever need to check that.
                 }
 
@@ -820,7 +820,7 @@ namespace RDVFSharp.Entities
                 {   //Miss-- no effect.
                     TeamBattlefield.WindowController.Hit.Add(" FAILED! ");
                     attacker.IsExposed += 4; //If the fighter misses a big attack, it leaves them open and they have to recover balance which gives the opponent a chance to strike.
-                    TeamBattlefield.WindowController.Hint.Add(attacker.Name + " was left wide open by the failed attack and is now Exposed! " + othertarget.Name + " has -2 difficulty to hit and can use Grab even if fighters are not in grappling range!");
+                    TeamBattlefield.WindowController.Hint.Add(attacker.Name + " was left wide open by the failed attack and is now Exposed! Any attacks against " + attacker.Name + " have -2 difficulty to hit, and they can be Grabbed even if fighters are not in grappling range!");
                     return false; //Failed attack, if we ever need to check that.
                 }
 
@@ -1187,8 +1187,7 @@ namespace RDVFSharp.Entities
                 {   //Miss-- no effect.
                     TeamBattlefield.WindowController.Hit.Add(" FAILED!");
                     attacker.IsExposed += 4; //If the fighter misses a big attack, it leaves them open and they have to recover balance which gives the opponent a chance to strike.
-                    TeamBattlefield.WindowController.Hint.Add(attacker.Name + " was left wide open by the failed attack and is now Exposed! " + target.Name + " has -2 difficulty to hit and can use Grab even if fighters are not in grappling range!");
-                    //If opponent fumbled on their previous action they should become stunned. Tackle is a special case because it stuns anyway if it hits, so we only do this on a miss.
+                    TeamBattlefield.WindowController.Hint.Add(attacker.Name + " was left wide open by the failed attack and is now Exposed! Any attacks against " + attacker.Name + " have -2 difficulty to hit, and they can be Grabbed even if fighters are not in grappling range!");                    //If opponent fumbled on their previous action they should become stunned. Tackle is a special case because it stuns anyway if it hits, so we only do this on a miss.
                     if (target.Fumbled)
                     {
                         target.IsDazed = true;
@@ -1297,8 +1296,7 @@ namespace RDVFSharp.Entities
                 {   //Miss-- no effect.
                     TeamBattlefield.WindowController.Hit.Add(" FAILED!");
                     attacker.IsExposed += 4; //If the fighter misses a big attack, it leaves them open and they have to recover balance which gives the opponent a chance to strike.
-                    TeamBattlefield.WindowController.Hint.Add(attacker.Name + " was left wide open by the failed attack and is now Exposed! " + othertarget.Name + " has -2 difficulty to hit and can use Grab even if fighters are not in grappling range!");
-                    //If opponent fumbled on their previous action they should become stunned. Tackle is a special case because it stuns anyway if it hits, so we only do this on a miss.
+                    TeamBattlefield.WindowController.Hint.Add(attacker.Name + " was left wide open by the failed attack and is now Exposed! Any attacks against " + attacker.Name + " have -2 difficulty to hit, and they can be Grabbed even if fighters are not in grappling range!");                    //If opponent fumbled on their previous action they should become stunned. Tackle is a special case because it stuns anyway if it hits, so we only do this on a miss.
                     if (othertarget.Fumbled)
                     {
                         othertarget.IsDazed = true;
@@ -1415,8 +1413,7 @@ namespace RDVFSharp.Entities
                 TeamBattlefield.WindowController.Hit.Add(" FAILED!");
                 if (attacker.IsRestrained) attacker.IsEscaping += 4;//If we fail to escape, it'll be easier next time.
                 attacker.IsExposed += 2; //If the fighter misses a big attack, it leaves them open and they have to recover balance which gives the opponent a chance to strike.
-                TeamBattlefield.WindowController.Hint.Add(attacker.Name + " was left wide open by the failed attack and is now Exposed! " + target.Name + " has -2 difficulty to hit and can use Grab even if fighters are not in grappling range!");
-                //If opponent fumbled on their previous action they should become stunned. Tackle is a special case because it stuns anyway if it hits, so we only do this on a miss.
+                TeamBattlefield.WindowController.Hint.Add(attacker.Name + " was left wide open by the failed attack and is now Exposed! Any attacks against " + attacker.Name + " have -2 difficulty to hit, and they can be Grabbed even if fighters are not in grappling range!");                //If opponent fumbled on their previous action they should become stunned. Tackle is a special case because it stuns anyway if it hits, so we only do this on a miss.
                 if (target.Fumbled)
                 {
                     target.IsDazed = true;
@@ -1751,8 +1748,7 @@ namespace RDVFSharp.Entities
                 {   //Miss-- no effect.
                     TeamBattlefield.WindowController.Hit.Add(" FAILED!");
                     attacker.IsExposed += 4; //If the fighter misses a big attack, it leaves them open and they have to recover balance which gives the opponent a chance to strike.
-                    TeamBattlefield.WindowController.Hint.Add(attacker.Name + " was left wide open by the failed attack and is now Exposed! " + target.Name + " has -2 difficulty to hit and can use Grab even if fighters are not in grappling range!");
-                    return false; //Failed attack, if we ever need to check that.
+                    TeamBattlefield.WindowController.Hint.Add(attacker.Name + " was left wide open by the failed attack and is now Exposed! Any attacks against " + attacker.Name + " have -2 difficulty to hit, and they can be Grabbed even if fighters are not in grappling range!"); return false; //Failed attack, if we ever need to check that.
                 }
 
                 if (roll >= attackTable.crit)
@@ -1844,8 +1840,7 @@ namespace RDVFSharp.Entities
                 {   //Miss-- no effect.
                     TeamBattlefield.WindowController.Hit.Add(" FAILED!");
                     attacker.IsExposed += 4; //If the fighter misses a big attack, it leaves them open and they have to recover balance which gives the opponent a chance to strike.
-                    TeamBattlefield.WindowController.Hint.Add(attacker.Name + " was left wide open by the failed attack and is now Exposed! " + othertarget.Name + " has -2 difficulty to hit and can use Grab even if fighters are not in grappling range!");
-                    return false; //Failed attack, if we ever need to check that.
+                    TeamBattlefield.WindowController.Hint.Add(attacker.Name + " was left wide open by the failed attack and is now Exposed! Any attacks against " + attacker.Name + " have -2 difficulty to hit, and they can be Grabbed even if fighters are not in grappling range!"); return false; //Failed attack, if we ever need to check that.
                 }
 
                 if (roll >= attackTable.crit)

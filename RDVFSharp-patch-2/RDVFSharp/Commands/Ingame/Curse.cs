@@ -6,18 +6,37 @@ namespace RDVFSharp.Commands
     {
         public override void ExecuteCommand(string character, IEnumerable<string> args, string channel)
         {
-            if (Plugin.CurrentTeamBattlefield.GetActor().CurseUsed == 0)
+            if (Plugin.CurrentTeamBattlefield.IsActive)
+
             {
-                base.ExecuteCommand(character, args, channel);
+                if (Plugin.CurrentTeamBattlefield.GetActor().CurseUsed == 0)
+                {
+                    base.ExecuteCommand(character, args, channel);
+                }
+
+                else
+                {
+                    Plugin.FChatClient.SendMessageInChannel("You have already used Curse once in this match!", Plugin.Channel);
+                }
             }
-            else if (Plugin.CurrentBattlefield.GetActor().CurseUsed == 0)
+
+            else if (Plugin.CurrentBattlefield.IsActive)
+
             {
-                base.ExecuteCommand(character, args, channel);
+                if (Plugin.CurrentBattlefield.GetActor().CurseUsed == 0)
+                {
+                    base.ExecuteCommand(character, args, channel);
+                }
+
+                else
+                {
+                    Plugin.FChatClient.SendMessageInChannel("You have already used Curse once in this match!", Plugin.Channel);
+                }
             }
 
             else
             {
-                Plugin.FChatClient.SendMessageInChannel("You have already used Curse once in this match!", Plugin.Channel);
+                Plugin.FChatClient.SendMessageInChannel("There is no match going on right now!", Plugin.Channel);
             }
         }
     }

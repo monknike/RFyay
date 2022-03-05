@@ -19,6 +19,17 @@ namespace RDVFSharp.Commands
             {
                 throw new FightInProgress();
             }
+            
+            else if (Plugin.FirstFighter != null)
+            { 
+                throw new FightInProgress(); 
+            }
+
+            else if (Plugin.CurrentTeamBattlefield.IsActive)
+            {
+                throw new FightInProgress();
+            }
+
             else if (Plugin.FirstTeamFighter?.Name == character || Plugin.SecondTeamFighter?.Name == character || Plugin.ThirdTeamFighter?.Name == character || Plugin.FourthTeamFighter?.Name == character)
             {
                 throw new FighterAlreadyExists(character);
