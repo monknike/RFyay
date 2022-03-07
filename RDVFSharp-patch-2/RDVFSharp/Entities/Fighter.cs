@@ -1513,7 +1513,7 @@ namespace RDVFSharp.Entities
             {
                 target.HPDOT = (int)Math.Ceiling((double)totalBonus / 2);
                 target.HPBurn = 4;
-                Battlefield.WindowController.Hit.Add(attacker.Name + " landed a strike against " + target.Name + " that will do damage over time for 4 turns!");
+                Battlefield.WindowController.Hit.Add(attacker.Name + " landed a strike against " + target.Name + " that will do damage over time for 3 turns!");
             }
 
             if (Battlefield.InGrabRange)
@@ -1589,7 +1589,7 @@ namespace RDVFSharp.Entities
             {
                 target.HPDOT = (int)Math.Ceiling((double)totalBonus / 2);
                 target.HPBurn = 4;
-                Battlefield.WindowController.Hit.Add(attacker.Name + " landed a strike against " + target.Name + " that will do damage over time for 4 turns!");
+                Battlefield.WindowController.Hit.Add(attacker.Name + " landed a strike against " + target.Name + " that will do damage over time for 3 turns!");
             }
 
             if (Battlefield.InGrabRange)

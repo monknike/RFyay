@@ -5,7 +5,7 @@ using System.Collections.Generic;
 
 namespace RDVFSharp.Commands
 {
-    public class Aoe : Action
+    public class Manastorm : Action
 
     {
         public override void ExecuteCommand(string character, IEnumerable<string> args, string channel)

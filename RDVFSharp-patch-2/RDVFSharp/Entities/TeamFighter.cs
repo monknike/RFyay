@@ -143,7 +143,7 @@ namespace RDVFSharp.Entities
             IsDead = false;
             CurseUsed = 0;
             IsRestrained = false;
-            IsRestraining = true;
+            IsRestraining = false;
             IsDazed = false;
             IsStunned = 0;
             IsDisoriented = 0;
@@ -366,7 +366,7 @@ namespace RDVFSharp.Entities
             if (HPBurn > 1)
 
             {
-                TeamBattlefield.WindowController.Hint.Add(Name + " is taking " + HPDOT + " damage for " + (HPBurn - 1) + " turn(s).");
+                TeamBattlefield.WindowController.Hint.Add(Name + " is taking " + HPDOT + " damage to HP and stamina for " + (HPBurn - 1) + " turn(s).");
             }
 
             if (IsGuarding > 0)
@@ -405,7 +405,7 @@ namespace RDVFSharp.Entities
             {
                 IsDead = true;
                 IsGrabbable = 0;
-                IsStunned = 100000;
+                IsStunned = 2147483647;
                 CurseUsed = 0;
                 IsRestrained = false;
                 IsDazed = false;
@@ -500,7 +500,7 @@ namespace RDVFSharp.Entities
             if (attacker.IsRestrained) difficulty += 2; //Up the difficulty if the attacker is restrained.
             if (target.IsRestrained) difficulty -= 4; //Lower it if the target is restrained.
             if (target.IsExposed > 0) difficulty -= 2; // If opponent left themself wide open after a failed strong attack, they'll be easier to hit.
-            if (target.HPBurn > 1) difficulty -= 1;
+
 
                 if (target.IsGuarding > 0)
             {//Evasion bonus from move/teleport. Only applies to one attack, then is reset to 0.
@@ -508,15 +508,15 @@ namespace RDVFSharp.Entities
                     damage -= target.IsGuarding;
             }
 
-            if (attacker.IsGuarding > 0)
+            if (attacker.IsEvading > 0)
             {//Apply attack bonus from move/teleport then reset it.
-                attacker.IsGuarding = 0;
+                attacker.IsEvading = 0;
             }
             if (target.IsEvading > 0)
             {//Evasion bonus from move/teleport. Only applies to one attack, then is reset to 0.
                 difficulty += target.IsEvading;
                 damage -= target.IsEvading;
-                target.IsEvading = 0;
+                
             }
             if (attacker.IsAggressive > 0)
             {//Apply attack bonus from move/teleport then reset it.
@@ -588,8 +588,7 @@ namespace RDVFSharp.Entities
                 if (attacker.IsRestrained) difficulty += 2; //Up the difficulty if the attacker is restrained.
                 if (othertarget.IsRestrained) difficulty -= 4; //Lower it if the target is restrained.
                 if (othertarget.IsExposed > 0) difficulty -= 2; // If opponent left themself wide open after a failed strong attack, they'll be easier to hit.
-                if (othertarget.HPBurn > 1) difficulty -= 1;
-
+               
                 if (othertarget.IsGuarding > 0)
                 {//Evasion bonus from move/teleport. Only applies to one attack, then is reset to 0.
                     difficulty += othertarget.IsGuarding;
@@ -604,13 +603,17 @@ namespace RDVFSharp.Entities
                 {//Evasion bonus from move/teleport. Only applies to one attack, then is reset to 0.
                     difficulty += othertarget.IsEvading;
                     damage -= othertarget.IsEvading;
-                    othertarget.IsEvading = 0;
                 }
                 if (attacker.IsAggressive > 0)
                 {//Apply attack bonus from move/teleport then reset it.
                     difficulty -= attacker.IsAggressive;
                     damage += attacker.IsAggressive;
                     attacker.IsAggressive = 0;
+                }
+
+                if (attacker.IsEvading > 0)
+                {//Apply attack bonus from move/teleport then reset it.
+                    attacker.IsEvading = 0;
                 }
 
                 if (attacker.Stamina < requiredStam)
@@ -687,13 +690,11 @@ namespace RDVFSharp.Entities
                 if (attacker.IsRestrained) difficulty += 2; //Up the difficulty if the attacker is restrained.
                 if (target.IsRestrained) difficulty -= 4; //Lower it if the target is restrained.
                 if (target.IsExposed > 0) difficulty -= 2; // If opponent left themself wide open after a failed strong attack, they'll be easier to hit.
-                if (target.HPBurn > 1) difficulty -= 1;
-
+               
                 if (target.IsEvading > 0)
                 {//Evasion bonus from move/teleport. Only applies to one attack, then is reset to 0.
                     difficulty += target.IsEvading;
                     damage -= target.IsEvading;
-                    target.IsEvading = 0;
                 }
                 if (attacker.IsAggressive > 0)
                 {//Apply attack bonus from move/teleport then reset it.
@@ -707,9 +708,9 @@ namespace RDVFSharp.Entities
                     damage -= target.IsGuarding;
                 }
 
-                if (attacker.IsGuarding > 0)
+                if (attacker.IsEvading > 0)
                 {//Apply attack bonus from move/teleport then reset it.
-                    attacker.IsGuarding = 0;
+                    attacker.IsEvading = 0;
                 }
 
                 var critCheck = true;
@@ -777,13 +778,11 @@ namespace RDVFSharp.Entities
                 if (attacker.IsRestrained) difficulty += 2; //Up the difficulty if the attacker is restrained.
                 if (othertarget.IsRestrained) difficulty -= 4; //Lower it if the target is restrained.
                 if (othertarget.IsExposed > 0) difficulty -= 2; // If opponent left themself wide open after a failed strong attack, they'll be easier to hit.
-                if (othertarget.HPBurn > 1) difficulty -= 1;
-
+               
                 if (othertarget.IsEvading > 0)
                 {//Evasion bonus from move/teleport. Only applies to one attack, then is reset to 0.
                     difficulty += othertarget.IsEvading;
                     damage -= othertarget.IsEvading;
-                    othertarget.IsEvading = 0;
                 }
                 if (attacker.IsAggressive > 0)
                 {//Apply attack bonus from move/teleport then reset it.
@@ -796,9 +795,10 @@ namespace RDVFSharp.Entities
                     difficulty += othertarget.IsGuarding;
                     damage -= othertarget.IsGuarding;
                 }
-                if (attacker.IsGuarding > 0)
+
+                if (attacker.IsEvading > 0)
                 {//Apply attack bonus from move/teleport then reset it.
-                    attacker.IsGuarding = 0;
+                    attacker.IsEvading = 0;
                 }
 
                 var critCheck = true;
@@ -873,14 +873,13 @@ namespace RDVFSharp.Entities
 
             {
                 if (target.IsExposed > 0) difficulty -= 2; // If opponent left themself wide open after a failed strong attack, they'll be easier to hit.
-                if (target.HPBurn > 1) difficulty -= 1;
-
+               
 
                 if (target.IsEvading > 0)
                 {//Evasion bonus from move/teleport. Only applies to one attack, then is reset to 0.
                     difficulty += target.IsEvading;
                     damage -= target.IsEvading;
-                    target.IsEvading = 0;
+                    
                 }
                 if (attacker.IsAggressive > 0)
                 {//Apply attack bonus from move/teleport then reset it.
@@ -897,6 +896,11 @@ namespace RDVFSharp.Entities
                 if (attacker.IsGuarding > 0)
                 {//Apply attack bonus from move/teleport then reset it.
                     attacker.IsGuarding = 0;
+                }
+
+                if (attacker.IsEvading > 0)
+                {//Apply attack bonus from move/teleport then reset it.
+                    attacker.IsEvading = 0;
                 }
 
                 var critCheck = true;
@@ -950,19 +954,26 @@ namespace RDVFSharp.Entities
                 attacker.IsRestraining = true;
                 attacker.IsGrabbable = 40;
                 target.IsGrabbable = 40;
+                if (TeamBattlefield.GetTargetOfTarget() == partner) 
+                    {
+                    if (target.SetTarget == 0)
+                        target.SetTarget += 1;
+                    
+                    else
+                        target.SetTarget -= 1;
+                    }
                 return true; //Successful attack, if we ever need to check that.
             }
 
             else
             {
                 if (othertarget.IsExposed > 0) difficulty -= 2; // If opponent left themself wide open after a failed strong attack, they'll be easier to hit.
-                if (othertarget.HPBurn > 1) difficulty -= 1;
-
+               
                 if (othertarget.IsEvading > 0)
                 {//Evasion bonus from move/teleport. Only applies to one attack, then is reset to 0.
                     difficulty += othertarget.IsEvading;
                     damage -= othertarget.IsEvading;
-                    othertarget.IsEvading = 0;
+                    
                 }
                 if (attacker.IsAggressive > 0)
                 {//Apply attack bonus from move/teleport then reset it.
@@ -980,6 +991,11 @@ namespace RDVFSharp.Entities
                 if (attacker.IsGuarding > 0)
                 {//Apply attack bonus from move/teleport then reset it.
                     attacker.IsGuarding = 0;
+                }
+
+                if (attacker.IsEvading > 0)
+                {//Apply attack bonus from move/teleport then reset it.
+                    attacker.IsEvading = 0;
                 }
 
                 var critCheck = true;
@@ -1033,6 +1049,14 @@ namespace RDVFSharp.Entities
                 attacker.IsRestraining = true;
                 attacker.IsGrabbable = 40;
                 othertarget.IsGrabbable = 40;
+                if (TeamBattlefield.GetTargetOfOther() == partner)
+                {
+                    if (othertarget.SetTarget == 0)
+                        othertarget.SetTarget += 1;
+
+                    else
+                        othertarget.SetTarget -= 1;
+                }
                 return true; //Successful attack, if we ever need to check that.
             }
         
@@ -1057,14 +1081,18 @@ namespace RDVFSharp.Entities
             }
 
             if (target.IsExposed > 0) difficulty -= 2; // If opponent left themself wide open after a failed strong attack, they'll be easier to hit.
-            if (target.HPBurn > 1) difficulty -= 1;
-
+          
             if (target.IsEvading > 0)
             {//Evasion bonus from move/teleport. Only applies to one attack, then is reset to 0.
                 difficulty += target.IsEvading;
                 damage -= target.IsEvading;
-                target.IsEvading = 0;
             }
+
+            if (attacker.IsEvading > 0)
+            {//Apply attack bonus from move/teleport then reset it.
+                attacker.IsEvading = 0;
+            }
+
             if (attacker.IsAggressive > 0)
             {//Apply attack bonus from move/teleport then reset it.
                 difficulty -= attacker.IsAggressive;
@@ -1144,12 +1172,11 @@ namespace RDVFSharp.Entities
 
             {
                 if (target.IsExposed > 0) difficulty -= 2; // If opponent left themself wide open after a failed strong attack, they'll be easier to hit.
-                if (target.HPBurn > 1) difficulty -= 1;
                 if (target.IsEvading > 0)
                 {//Evasion bonus from move/teleport. Only applies to one attack, then is reset to 0.
                     difficulty += target.IsEvading;
                     damage -= target.IsEvading;
-                    target.IsEvading = 0;
+                    
                 }
                 if (attacker.IsAggressive > 0)
                 {//Apply attack bonus from move/teleport then reset it.
@@ -1161,6 +1188,11 @@ namespace RDVFSharp.Entities
                 {//Evasion bonus from move/teleport. Only applies to one attack, then is reset to 0.
                     difficulty += target.IsGuarding;
                     damage -= target.IsGuarding;
+                }
+                
+                if (attacker.IsEvading > 0)
+                {//Apply attack bonus from move/teleport then reset it.
+                    attacker.IsEvading = 0;
                 }
 
                 if (attacker.IsGuarding > 0)
@@ -1252,13 +1284,12 @@ namespace RDVFSharp.Entities
             else
             {
                 if (othertarget.IsExposed > 0) difficulty -= 2; // If opponent left themself wide open after a failed strong attack, they'll be easier to hit.
-                if (othertarget.HPBurn > 1) difficulty -= 1;
-
+          
                 if (othertarget.IsEvading > 0)
                 {//Evasion bonus from move/teleport. Only applies to one attack, then is reset to 0.
                     difficulty += othertarget.IsEvading;
                     damage -= othertarget.IsEvading;
-                    othertarget.IsEvading = 0;
+
                 }
                 if (attacker.IsAggressive > 0)
                 {//Apply attack bonus from move/teleport then reset it.
@@ -1270,6 +1301,11 @@ namespace RDVFSharp.Entities
                 {//Evasion bonus from move/teleport. Only applies to one attack, then is reset to 0.
                     difficulty += othertarget.IsGuarding;
                     damage -= othertarget.IsGuarding;
+                }
+
+                if (attacker.IsEvading > 0)
+                {//Apply attack bonus from move/teleport then reset it.
+                    attacker.IsEvading = 0;
                 }
 
                 if (attacker.IsGuarding > 0)
@@ -1371,13 +1407,12 @@ namespace RDVFSharp.Entities
             if (attacker.IsRestrained) difficulty -= attacker.IsEscaping; //Then reduce difficulty based on how much effort we've put into escaping so far.
             if (target.IsRestrained) difficulty -= 4; //Lower the difficulty considerably if the target is restrained.
             if (target.IsExposed > 0) difficulty -= 2; // If opponent left themself wide open after a failed strong attack, they'll be easier to hit.
-            if (target.HPBurn > 1) difficulty -= 1;
-
+          
             if (target.IsEvading > 0)
             {//Evasion bonus from move/teleport. Only applies to one attack, then is reset to 0.
                 difficulty += target.IsEvading;
                 damage -= target.IsEvading;
-                target.IsEvading = 0;
+                
             }
 
             if (target.IsGuarding > 0)
@@ -1391,6 +1426,11 @@ namespace RDVFSharp.Entities
                 difficulty -= attacker.IsAggressive;
                 damage += attacker.IsAggressive;
                 attacker.IsAggressive = 0;
+            }
+            
+            if (attacker.IsEvading > 0)
+            {//Apply attack bonus from move/teleport then reset it.
+                attacker.IsEvading = 0;
             }
 
             var critCheck = true;
@@ -1504,15 +1544,14 @@ namespace RDVFSharp.Entities
                 if (target.IsRestrained) difficulty += 4; //Ranged attacks during grapple are hard.
                 if (target.IsRestrained) difficulty -= 2; //Lower the difficulty slightly if the target is restrained.
                 if (attacker.IsFocused > 0) difficulty -= (int)Math.Ceiling((double)attacker.IsFocused / 10); //Lower the difficulty considerably if the attacker is focused
-                if (target.HPBurn > 1) difficulty -= 1;
-
+          
                 if (attacker.IsFocused > 0) damage += (int)Math.Ceiling((double)attacker.IsFocused / 10); //Focus gives bonus damage.
 
                 if (target.IsEvading > 0)
                 {//Evasion bonus from move/teleport. Only applies to one attack, then is reset to 0.
                     difficulty += (int)Math.Ceiling((double)target.IsEvading / 2);//Half effect on ranged attacks.
                     damage -= (int)Math.Ceiling((double)target.IsEvading / 2);
-                    target.IsEvading = 0;
+                    
                 }
                 if (attacker.IsAggressive > 0)
                 {//Apply attack bonus from move/teleport then reset it.
@@ -1524,6 +1563,11 @@ namespace RDVFSharp.Entities
                 {//Evasion bonus from move/teleport. Only applies to one attack, then is reset to 0.
                     difficulty += (int)Math.Ceiling((double)target.IsGuarding / 2);
                     damage -= (int)Math.Ceiling((double)target.IsGuarding / 2); ;
+                }
+
+                if (attacker.IsEvading > 0)
+                {//Apply attack bonus from move/teleport then reset it.
+                    attacker.IsEvading = 0;
                 }
 
                 if (attacker.IsGuarding > 0)
@@ -1597,15 +1641,14 @@ namespace RDVFSharp.Entities
                 if (othertarget.IsRestrained) difficulty += 4; //Ranged attacks during grapple are hard.
                 if (othertarget.IsRestrained) difficulty -= 2; //Lower the difficulty slightly if the target is restrained.
                 if (attacker.IsFocused > 0) difficulty -= (int)Math.Ceiling((double)attacker.IsFocused / 10); //Lower the difficulty considerably if the attacker is focused
-                if (othertarget.HPBurn > 1) difficulty -= 1;
-
+          
                 if (attacker.IsFocused > 0) damage += (int)Math.Ceiling((double)attacker.IsFocused / 10); //Focus gives bonus damage.
 
                 if (othertarget.IsEvading > 0)
                 {//Evasion bonus from move/teleport. Only applies to one attack, then is reset to 0.
                     difficulty += (int)Math.Ceiling((double)othertarget.IsEvading / 2);//Half effect on ranged attacks.
                     damage -= (int)Math.Ceiling((double)othertarget.IsEvading / 2);
-                    othertarget.IsEvading = 0;
+                    
                 }
                 if (attacker.IsAggressive > 0)
                 {//Apply attack bonus from move/teleport then reset it.
@@ -1617,6 +1660,11 @@ namespace RDVFSharp.Entities
                 {//Evasion bonus from move/teleport. Only applies to one attack, then is reset to 0.
                     difficulty += othertarget.IsGuarding;
                     damage -= othertarget.IsGuarding;
+                }
+
+                if (attacker.IsEvading > 0)
+                {//Apply attack bonus from move/teleport then reset it.
+                    attacker.IsEvading = 0;
                 }
 
                 if (attacker.IsGuarding > 0)
@@ -1704,13 +1752,11 @@ namespace RDVFSharp.Entities
                 if (attacker.IsRestrained) difficulty += 2; //Math.max(2, 4 + Math.floor((target.strength() - attacker.strength()) / 2)); //When grappled, up the difficulty based on the relative strength of the combatants. Minimum of +2 difficulty, maximum of +8.
                 if (target.IsRestrained) difficulty -= 4; //Lower the difficulty considerably if the target is restrained.
                 if (target.IsExposed > 0) difficulty -= 2; // If opponent left themself wide open after a failed strong attack, they'll be easier to hit.
-                if (target.HPBurn > 1) difficulty -= 1;
-
+          
                 if (target.IsEvading > 0)
                 {//Evasion bonus from move/teleport. Only applies to one attack, then is reset to 0.
                     difficulty += target.IsEvading;
                     damage -= target.IsEvading;
-                    target.IsEvading = 0;
                 }
                 if (attacker.IsAggressive > 0)
                 {//Apply attack bonus from move/teleport then reset it.
@@ -1727,6 +1773,11 @@ namespace RDVFSharp.Entities
                 if (attacker.IsGuarding > 0)
                 {//Apply attack bonus from move/teleport then reset it.
                     attacker.IsGuarding = 0;
+                }
+
+                if (attacker.IsEvading > 0)
+                {//Apply attack bonus from move/teleport then reset it.
+                    attacker.IsEvading = 0;
                 }
 
                 var critCheck = true;
@@ -1796,13 +1847,12 @@ namespace RDVFSharp.Entities
                 if (attacker.IsRestrained) difficulty += 2; //Math.max(2, 4 + Math.floor((othertarget.strength() - attacker.strength()) / 2)); //When grappled, up the difficulty based on the relative strength of the combatants. Minimum of +2 difficulty, maximum of +8.
                 if (othertarget.IsRestrained) difficulty -= 4; //Lower the difficulty considerably if the target is restrained.
                 if (othertarget.IsExposed > 0) difficulty -= 2; // If opponent left themself wide open after a failed strong attack, they'll be easier to hit.
-                if (othertarget.HPBurn > 1) difficulty -= 1;
-
+          
                 if (othertarget.IsEvading > 0)
                 {//Evasion bonus from move/teleport. Only applies to one attack, then is reset to 0.
                     difficulty += othertarget.IsEvading;
                     damage -= othertarget.IsEvading;
-                    othertarget.IsEvading = 0;
+                    
                 }
                 if (attacker.IsAggressive > 0)
                 {//Apply attack bonus from move/teleport then reset it.
@@ -1819,6 +1869,11 @@ namespace RDVFSharp.Entities
                 if (attacker.IsGuarding > 0)
                 {//Apply attack bonus from move/teleport then reset it.
                     attacker.IsGuarding = 0;
+                }
+
+                if (attacker.IsEvading > 0)
+                {//Apply attack bonus from move/teleport then reset it.
+                    attacker.IsEvading = 0;
                 }
 
                 var critCheck = true;
@@ -1902,14 +1957,13 @@ namespace RDVFSharp.Entities
             if (attacker.IsRestrained) difficulty += 2;
             if (target.IsRestrained) difficulty -= 4; //Ranged attacks during grapple are hard, but Hex is now melee.
             if (target.IsExposed > 0) difficulty -= 2; // If opponent left themself wide open after a failed strong attack, they'll be easier to hit.
-            if (target.HPBurn > 1) difficulty -= 1;
-
+          
 
             if (target.IsEvading > 0)
             {//Evasion bonus from move/teleport. Only applies to one attack, then is reset to 0.
                 difficulty += target.IsEvading;//Half effect on ranged attacks.
                 damage -= target.IsEvading;
-                target.IsEvading = 0;
+
             }
             if (attacker.IsAggressive > 0)
             {//Apply attack bonus from move/teleport then reset it.
@@ -1924,11 +1978,16 @@ namespace RDVFSharp.Entities
                 }
 
                 if (attacker.IsGuarding > 0)
-            {//Apply attack bonus from move/teleport then reset it.
+                {//Apply attack bonus from move/teleport then reset it.
                 attacker.IsGuarding = 0;
-            }
+                }
+                
+                if (attacker.IsEvading > 0)
+                {//Apply attack bonus from move/teleport then reset it.
+                    attacker.IsEvading = 0;
+                }
 
-            var critCheck = true;
+                var critCheck = true;
             if (attacker.Mana  < requiredMana)
             {   //Not enough mana-- reduced effect
                 critCheck = false;
@@ -1995,13 +2054,12 @@ namespace RDVFSharp.Entities
                 if (attacker.IsRestrained) difficulty += 2;
                 if (othertarget.IsRestrained) difficulty -= 4; //Ranged attacks during grapple are hard, but Hex is now melee.
                 if (othertarget.IsExposed > 0) difficulty -= 2; // If opponent left themself wide open after a failed strong attack, they'll be easier to hit.
-                if (othertarget.HPBurn > 1) difficulty -= 1;
-
+          
                 if (othertarget.IsEvading > 0)
                 {//Evasion bonus from move/teleport. Only applies to one attack, then is reset to 0.
                     difficulty += othertarget.IsEvading;//Half effect on ranged attacks.
                     damage -= othertarget.IsEvading;
-                    othertarget.IsEvading = 0;
+
                 }
                 if (attacker.IsAggressive > 0)
                 {//Apply attack bonus from move/teleport then reset it.
@@ -2019,7 +2077,10 @@ namespace RDVFSharp.Entities
                 {//Apply attack bonus from move/teleport then reset it.
                     attacker.IsGuarding = 0;
                 }
-
+                if (attacker.IsEvading > 0)
+                {//Apply attack bonus from move/teleport then reset it.
+                    attacker.IsEvading = 0;
+                }
                 var critCheck = true;
                 if (attacker.Mana < requiredMana)
                 {   //Not enough mana-- reduced effect
@@ -2100,8 +2161,7 @@ namespace RDVFSharp.Entities
                 if (attacker.IsRestrained) difficulty += 2; //Math.Max(2, 4 + (int)Math.Floor((double)(target.Strength - attacker.Strength) / 2)); //When grappled, up the difficulty based on the relative strength of the combatants. Minimum of +2 difficulty, maximum of +8.
                 if (target.IsRestrained) difficulty -= 4; //Ranged attacks during grapple are hard.
                 if (attacker.IsFocused > 0) difficulty -= (int)Math.Ceiling((double)attacker.IsFocused / 10); //Lower the difficulty if the attacker is focused
-                if (target.HPBurn > 1) difficulty -= 1;
-
+          
 
                 if (attacker.IsFocused > 0) damage += (int)Math.Ceiling((double)attacker.IsFocused / 10); //Focus gives bonus damage.
 
@@ -2109,7 +2169,7 @@ namespace RDVFSharp.Entities
                 {//Evasion bonus from move/teleport. Only applies to one attack, then is reset to 0.
                     difficulty += (int)Math.Ceiling((double)target.IsEvading / 2);//Half effect on ranged attacks.
                     damage -= (int)Math.Ceiling((double)target.IsEvading / 2);
-                    target.IsEvading = 0;
+               
                 }
                 if (attacker.IsAggressive > 0)
                 {//Apply attack bonus from move/teleport then reset it.
@@ -2124,10 +2184,11 @@ namespace RDVFSharp.Entities
                     damage -= (int)Math.Ceiling((double)target.IsGuarding / 2);
                 }
 
-                if (attacker.IsGuarding > 0)
+                if (attacker.IsEvading > 0)
                 {//Apply attack bonus from move/teleport then reset it.
-                    attacker.IsGuarding = 0;
+                    attacker.IsEvading = 0;
                 }
+
                 var critCheck = true;
                 if (attacker.Mana < requiredMana)
                 {   //Not enough mana-- reduced effect
@@ -2196,15 +2257,13 @@ namespace RDVFSharp.Entities
                 if (attacker.IsRestrained) difficulty += 2; //Math.Max(2, 4 + (int)Math.Floor((double)(othertarget.Strength - attacker.Strength) / 2)); //When grappled, up the difficulty based on the relative strength of the combatants. Minimum of +2 difficulty, maximum of +8.
                 if (othertarget.IsRestrained) difficulty -= 4; //Ranged attacks during grapple are hard.
                 if (attacker.IsFocused > 0) difficulty -= (int)Math.Ceiling((double)attacker.IsFocused / 10); //Lower the difficulty if the attacker is focused
-                if (othertarget.HPBurn > 1) difficulty -= 1;
-
+          
                 if (attacker.IsFocused > 0) damage += (int)Math.Ceiling((double)attacker.IsFocused / 10); //Focus gives bonus damage.
 
                 if (othertarget.IsEvading > 0)
                 {//Evasion bonus from move/teleport. Only applies to one attack, then is reset to 0.
                     difficulty += (int)Math.Ceiling((double)othertarget.IsEvading / 2);//Half effect on ranged attacks.
                     damage -= (int)Math.Ceiling((double)othertarget.IsEvading / 2);
-                    othertarget.IsEvading = 0;
                 }
                 if (attacker.IsAggressive > 0)
                 {//Apply attack bonus from move/teleport then reset it.
@@ -2222,6 +2281,12 @@ namespace RDVFSharp.Entities
                 {//Apply attack bonus from move/teleport then reset it.
                     attacker.IsGuarding = 0;
                 }
+
+                if (attacker.IsEvading > 0)
+                {//Apply attack bonus from move/teleport then reset it.
+                    attacker.IsEvading = 0;
+                }
+
                 var critCheck = true;
                 if (attacker.Mana < requiredMana)
                 {   //Not enough mana-- reduced effect
@@ -2305,15 +2370,13 @@ namespace RDVFSharp.Entities
                 if (attacker.IsRestrained) difficulty += 4; //Math.Max(2, 4 + (int)Math.Floor((double)(target.Strength - attacker.Strength) / 2)); //When grappled, up the difficulty based on the relative strength of the combatants. Minimum of +2 difficulty, maximum of +8.
                 if (target.IsRestrained) difficulty += 4; //Ranged attacks during grapple are hard.
                 if (attacker.IsFocused > 0) difficulty -= (int)Math.Ceiling((double)attacker.IsFocused / 10); //Lower the difficulty if the attacker is focused
-                if (target.HPBurn > 1) difficulty -= 1;
-
+          
                 if (attacker.IsFocused > 0) damage += (int)Math.Ceiling((double)attacker.IsFocused / 10); //Focus gives bonus damage.
 
                 if (target.IsEvading > 0)
                 {//Evasion bonus from move/teleport. Only applies to one attack, then is reset to 0.
                     difficulty += (int)Math.Ceiling((double)target.IsEvading / 2);//Half effect on ranged attacks.
                     damage -= (int)Math.Ceiling((double)target.IsEvading / 2);
-                    target.IsEvading = 0;
                 }
                 if (attacker.IsAggressive > 0)
                 {//Apply attack bonus from move/teleport then reset it.
@@ -2326,6 +2389,11 @@ namespace RDVFSharp.Entities
                 {//Evasion bonus from move/teleport. Only applies to one attack, then is reset to 0.
                     difficulty += (int)Math.Ceiling((double)target.IsGuarding / 2);
                     damage -= (int)Math.Ceiling((double)target.IsGuarding / 2);
+                }
+
+                if (attacker.IsEvading > 0)
+                {//Apply attack bonus from move/teleport then reset it.
+                    attacker.IsEvading = 0;
                 }
 
                 if (attacker.IsGuarding > 0)
@@ -2399,15 +2467,13 @@ namespace RDVFSharp.Entities
                 if (attacker.IsRestrained) difficulty += 4; //Math.Max(2, 4 + (int)Math.Floor((double)(othertarget.Strength - attacker.Strength) / 2)); //When grappled, up the difficulty based on the relative strength of the combatants. Minimum of +2 difficulty, maximum of +8.
                 if (othertarget.IsRestrained) difficulty += 4; //Ranged attacks during grapple are hard.
                 if (attacker.IsFocused > 0) difficulty -= (int)Math.Ceiling((double)attacker.IsFocused / 10); //Lower the difficulty if the attacker is focused
-                if (othertarget.HPBurn > 1) difficulty -= 1;
-
+          
                 if (attacker.IsFocused > 0) damage += (int)Math.Ceiling((double)attacker.IsFocused / 10); //Focus gives bonus damage.
 
                 if (othertarget.IsEvading > 0)
                 {//Evasion bonus from move/teleport. Only applies to one attack, then is reset to 0.
                     difficulty += (int)Math.Ceiling((double)othertarget.IsEvading / 2);//Half effect on ranged attacks.
                     damage -= (int)Math.Ceiling((double)othertarget.IsEvading / 2);
-                    othertarget.IsEvading = 0;
                 }
                 if (attacker.IsAggressive > 0)
                 {//Apply attack bonus from move/teleport then reset it.
@@ -2424,6 +2490,11 @@ namespace RDVFSharp.Entities
                 if (attacker.IsGuarding > 0)
                 {//Apply attack bonus from move/teleport then reset it.
                     attacker.IsGuarding = 0;
+                }
+                
+                if (attacker.IsEvading > 0)
+                {//Apply attack bonus from move/teleport then reset it.
+                    attacker.IsEvading = 0;
                 }
 
                 var critCheck = true;
@@ -2482,7 +2553,7 @@ namespace RDVFSharp.Entities
         }
 
 
-        public bool ActionAoe(int roll)
+        public bool ActionManastorm(int roll)
         {
             var attacker = this;
             var target = TeamBattlefield.GetTarget();
@@ -2506,16 +2577,15 @@ namespace RDVFSharp.Entities
                 if (attacker.IsRestrained) difficulty += 4; //Math.Max(2, 4 + (int)Math.Floor((double)(target.Strength - attacker.Strength) / 2)); //When grappled, up the difficulty based on the relative strength of the combatants. Minimum of +2 difficulty, maximum of +8.
                 if (target.IsRestrained) difficulty += 4; //Ranged attacks during grapple are hard.
                 if (attacker.IsFocused > 0) difficulty -= (int)Math.Ceiling((double)attacker.IsFocused / 10); //Lower the difficulty if the attacker is focused
-                if (target.HPBurn > 1) difficulty -= 1;
-
+          
                 if (attacker.IsFocused > 0) damage += (int)Math.Ceiling((double)attacker.IsFocused / 10); //Focus gives bonus damage.
 
                 if (target.IsEvading > 0)
                 {//Evasion bonus from move/teleport. Only applies to one attack, then is reset to 0.
                     difficulty += target.IsEvading;//Half effect on ranged attacks.
                     damage -= target.IsEvading;
-                    target.IsEvading = 0;
                 }
+
                 if (attacker.IsAggressive > 0)
                 {//Apply attack bonus from move/teleport then reset it.
                     difficulty -= attacker.IsAggressive;
@@ -2532,6 +2602,11 @@ namespace RDVFSharp.Entities
                 if (attacker.IsGuarding > 0)
                 {//Apply attack bonus from move/teleport then reset it.
                     attacker.IsGuarding = 0;
+                }
+                
+                if (attacker.IsEvading > 0)
+                {//Apply attack bonus from move/teleport then reset it.
+                    attacker.IsEvading = 0;
                 }
 
                 var critCheck = true;
@@ -2601,15 +2676,13 @@ namespace RDVFSharp.Entities
                 if (attacker.IsRestrained) difficulty += 4; //Math.Max(2, 4 + (int)Math.Floor((double)(othertarget.Strength - attacker.Strength) / 2)); //When grappled, up the difficulty based on the relative strength of the combatants. Minimum of +2 difficulty, maximum of +8.
                 if (othertarget.IsRestrained) difficulty += 4; //Ranged attacks during grapple are hard.
                 if (attacker.IsFocused > 0) difficulty -= (int)Math.Ceiling((double)attacker.IsFocused / 10); //Lower the difficulty if the attacker is focused
-                if (othertarget.HPBurn > 1) difficulty -= 1;
-
+          
                 if (attacker.IsFocused > 0) damage += (int)Math.Ceiling((double)attacker.IsFocused / 10); //Focus gives bonus damage.
 
                 if (othertarget.IsEvading > 0)
                 {//Evasion bonus from move/teleport. Only applies to one attack, then is reset to 0.
                     difficulty += othertarget.IsEvading;//Half effect on ranged attacks.
                     damage -= othertarget.IsEvading;
-                    othertarget.IsEvading = 0;
                 }
                 if (attacker.IsAggressive > 0)
                 {//Apply attack bonus from move/teleport then reset it.
@@ -2627,6 +2700,11 @@ namespace RDVFSharp.Entities
                 if (attacker.IsGuarding > 0)
                 {//Apply attack bonus from move/teleport then reset it.
                     attacker.IsGuarding = 0;
+                }
+
+                if (attacker.IsEvading > 0)
+                {//Apply attack bonus from move/teleport then reset it.
+                    attacker.IsEvading = 0;
                 }
 
                 var critCheck = true;
@@ -2708,14 +2786,12 @@ namespace RDVFSharp.Entities
             if (attacker.IsRestrained) difficulty += 4; //Math.Max(2, 4 + (int)Math.Floor((double)(target.Strength - attacker.Strength) / 2)); //When grappled, up the difficulty based on the relative strength of the combatants. Minimum of +2 difficulty, maximum of +8.
             if (target.IsRestrained) difficulty += 4; //Ranged attacks during grapple are hard.
             if (attacker.IsFocused > 0) difficulty -= (int)Math.Ceiling((double)attacker.IsFocused / 10); //Lower the difficulty if the attacker is focused
-            if (target.HPBurn > 1) difficulty -= 1;
-
+          
             
             if (target.IsEvading > 0)
             {//Evasion bonus from move/teleport. Only applies to one attack, then is reset to 0.
                 difficulty += target.IsEvading / 2;//Half effect on ranged attacks.
                 damage -= target.IsEvading;
-                target.IsEvading = 0;
             }
             if (attacker.IsAggressive > 0)
             {//Apply attack bonus from move/teleport then reset it.
@@ -2731,8 +2807,13 @@ namespace RDVFSharp.Entities
             }
 
                 if (attacker.IsGuarding > 0)
-            {//Apply attack bonus from move/teleport then reset it.
+                {//Apply attack bonus from move/teleport then reset it.
                 attacker.IsGuarding = 0;
+                }
+
+            if (attacker.IsEvading > 0)
+            {//Apply attack bonus from move/teleport then reset it.
+                attacker.IsEvading = 0;
             }
 
             var critCheck = true;
@@ -2817,14 +2898,18 @@ namespace RDVFSharp.Entities
                 if (attacker.IsRestrained) difficulty += 2; //Up the difficulty if the attacker is restrained.
                 if (target.IsRestrained) difficulty -= 4; //Lower it if the target is restrained.
                 if (target.IsExposed > 0) difficulty -= 2; // If opponent left themself wide open after a failed strong attack, they'll be easier to hit.
-                if (target.HPBurn > 1) difficulty -= 1;
-
+          
                 if (target.IsEvading > 0)
             {//Evasion bonus from move/teleport. Only applies to one attack, then is reset to 0.
              //Not affected by opponent's evasion bonus.
                 difficulty += target.IsEvading;
                 target.IsEvading = 0;
             }
+
+                if (attacker.IsEvading > 0)
+                {//Apply attack bonus from move/teleport then reset it.
+                    attacker.IsEvading = 0;
+                }
 
                 if (target.IsGuarding > 0)
                 {//Evasion bonus from move/teleport. Only applies to one attack, then is reset to 0.
@@ -2875,7 +2960,7 @@ namespace RDVFSharp.Entities
             {
                 target.HPDOT = (int)Math.Ceiling((double)totalBonus / 2);
                 target.HPBurn = (4);
-                TeamBattlefield.WindowController.Hit.Add(attacker.Name + " landed a strike against " + target.Name + " that will do damage over time for 4 turns!");
+                TeamBattlefield.WindowController.Hit.Add(attacker.Name + " landed a strike against " + target.Name + " that will do damage over time for 3 turns!");
             }
 
             if (TeamBattlefield.InGrabRange)
@@ -2900,13 +2985,11 @@ namespace RDVFSharp.Entities
                 if (attacker.IsRestrained) difficulty += 2; //Up the difficulty if the attacker is restrained.
                 if (othertarget.IsRestrained) difficulty -= 4; //Lower it if the target is restrained.
                 if (othertarget.IsExposed > 0) difficulty -= 2; // If opponent left themself wide open after a failed strong attack, they'll be easier to hit.
-                if (othertarget.HPBurn > 1) difficulty -= 1;
-
+          
                 if (othertarget.IsEvading > 0)
                 {//Evasion bonus from move/teleport. Only applies to one attack, then is reset to 0.
                  //Not affected by opponent's evasion bonus.
                     difficulty += othertarget.IsEvading;
-                    othertarget.IsEvading = 0;
                 }
                 if (othertarget.IsGuarding > 0)
                 {//Evasion bonus from move/teleport. Only applies to one attack, then is reset to 0.
@@ -2917,6 +3000,11 @@ namespace RDVFSharp.Entities
                 {//Apply attack bonus from move/teleport then reset it.
                     difficulty -= attacker.IsAggressive;
                     attacker.IsAggressive = 0;
+                }
+
+                if (attacker.IsEvading > 0)
+                {//Apply attack bonus from move/teleport then reset it.
+                    attacker.IsEvading = 0;
                 }
 
                 if (attacker.Mana < requiredMana)
@@ -2957,7 +3045,7 @@ namespace RDVFSharp.Entities
                 {
                     othertarget.HPDOT = (int)Math.Ceiling((double)totalBonus / 2);
                     othertarget.HPBurn = (4);
-                    TeamBattlefield.WindowController.Hit.Add(attacker.Name + " landed a critical strike against " + othertarget.Name + " and will do damage over time for 4 turns!");
+                    TeamBattlefield.WindowController.Hit.Add(attacker.Name + " landed a critical strike against " + othertarget.Name + " and will do damage over time for 3 turns!");
                 }
 
                 if (TeamBattlefield.InGrabRange)
@@ -2994,13 +3082,11 @@ namespace RDVFSharp.Entities
                 if (attacker.IsRestrained) difficulty += 2; //Up the difficulty if the attacker is restrained.
                 if (target.IsRestrained) difficulty -= 4; //Lower it if the target is restrained.
                 if (target.IsExposed > 0) difficulty -= 2; // If opponent left themself wide open after a failed strong attack, they'll be easier to hit.
-                if (target.HPBurn > 1) difficulty -= 1;
-
+          
                 if (target.IsEvading > 0)
             {//Evasion bonus from move/teleport. Only applies to one attack, then is reset to 0.
              //Not affected by opponent's evasion bonus.
                 difficulty += target.IsEvading;
-                target.IsEvading = 0;
             }
 
                 if (target.IsGuarding > 0)
@@ -3014,7 +3100,13 @@ namespace RDVFSharp.Entities
                 attacker.IsAggressive = 0;
             }
 
-            if (attacker.Stamina < requiredStamina)
+
+                if (attacker.IsEvading > 0)
+                {//Apply attack bonus from move/teleport then reset it.
+                    attacker.IsEvading = 0;
+                }
+
+                if (attacker.Stamina < requiredStamina)
             {   //Not enough stamina-- reduced effect
                 difficulty += (int)Math.Ceiling((double)((requiredStamina - attacker.Stamina) / requiredStamina) * (20 - difficulty)); // Too tired? You're going to fail.
                 TeamBattlefield.WindowController.Hint.Add(attacker.Name + " didn't have enough Stamina and took a penalty to the attempt.");
@@ -3052,7 +3144,7 @@ namespace RDVFSharp.Entities
             {
                 target.HPDOT = (int)Math.Ceiling((double)totalBonus / 2);
                 target.HPBurn = (4);
-                    TeamBattlefield.WindowController.Hit.Add(attacker.Name + " landed a strike against " + target.Name + " that will do damage over time for 4 turns!");
+                    TeamBattlefield.WindowController.Hit.Add(attacker.Name + " landed a strike against " + target.Name + " that will do damage over time for 3 turns!");
                 }
 
                 if (TeamBattlefield.InGrabRange)
@@ -3077,14 +3169,12 @@ namespace RDVFSharp.Entities
                 if (attacker.IsRestrained) difficulty += 2; //Up the difficulty if the attacker is restrained.
                 if (othertarget.IsRestrained) difficulty -= 4; //Lower it if the target is restrained.
                 if (othertarget.IsExposed > 0) difficulty -= 2; // If opponent left themself wide open after a failed strong attack, they'll be easier to hit.
-                if (othertarget.HPBurn > 1) difficulty -= 1;
-
+          
 
                 if (othertarget.IsEvading > 0)
                 {//Evasion bonus from move/teleport. Only applies to one attack, then is reset to 0.
                  //Not affected by opponent's evasion bonus.
                     difficulty += othertarget.IsEvading;
-                    othertarget.IsEvading = 0;
                 }
 
                 if (othertarget.IsGuarding > 0)
@@ -3096,6 +3186,11 @@ namespace RDVFSharp.Entities
                 {//Apply attack bonus from move/teleport then reset it.
                     difficulty -= attacker.IsAggressive;
                     attacker.IsAggressive = 0;
+                }
+
+                if (attacker.IsEvading > 0)
+                {//Apply attack bonus from move/teleport then reset it.
+                    attacker.IsEvading = 0;
                 }
 
                 if (attacker.Stamina < requiredStamina)
@@ -3136,7 +3231,7 @@ namespace RDVFSharp.Entities
                 {
                     othertarget.HPDOT = (int)Math.Ceiling((double)totalBonus / 2);
                     othertarget.HPBurn = (4);
-                    TeamBattlefield.WindowController.Hit.Add(attacker.Name + " landed a critical strike against " + othertarget.Name + " and will do damage over time for 4 turns!");
+                    TeamBattlefield.WindowController.Hit.Add(attacker.Name + " landed a critical strike against " + othertarget.Name + " and will do damage over time for 3 turns!");
                 }
 
                 if (TeamBattlefield.InGrabRange)
@@ -3164,10 +3259,7 @@ namespace RDVFSharp.Entities
             //if (attacker.IsDisoriented) difficulty += 2; //Up the difficulty if you are dizzy.
             if (attacker.IsRestrained) difficulty += 9; //Up the difficulty considerably if you are restrained.
 
-            if (target.IsEvading > 0)
-            {//Evasion bonus from move/teleport. Lasts 1 turn. We didn't make an attack and now it resets to 0.
-                target.IsEvading = 0;
-            }
+           
             if (attacker.IsAggressive > 0)
             {//Apply bonus to our action from move/teleport then reset it.
                 difficulty -= attacker.IsAggressive;
@@ -3177,6 +3269,12 @@ namespace RDVFSharp.Entities
             {//Apply attack bonus from move/teleport then reset it.
                 attacker.IsGuarding = 0;
             }
+
+            if (attacker.IsEvading > 0)
+            {//Apply attack bonus from move/teleport then reset it.
+                attacker.IsEvading = 0;
+            }
+
             if (roll <= difficulty)
             {   //Failed!
                 TeamBattlefield.WindowController.Hint.Add(attacker.Name + " was too disoriented or distracted to get any benefit from resting.");
@@ -3224,10 +3322,7 @@ namespace RDVFSharp.Entities
             //if (attacker.IsDisoriented) difficulty += 2; //Up the difficulty if you are dizzy.
             if (attacker.IsRestrained) difficulty += 9; //Up the difficulty considerably if you are restrained.
 
-            if (target.IsEvading > 0)
-            {//Evasion bonus from move/teleport. Lasts 1 turn. We didn't make an attack and now it resets to 0.
-                target.IsEvading = 0;
-            }
+
             if (attacker.IsAggressive > 0)
             {//Apply bonus to our action from move/teleport then reset it.
                 difficulty -= attacker.IsAggressive;
@@ -3236,6 +3331,11 @@ namespace RDVFSharp.Entities
             if (attacker.IsGuarding > 0)
             {//Apply attack bonus from move/teleport then reset it.
                 attacker.IsGuarding = 0;
+            }
+
+            if (attacker.IsEvading > 0)
+            {//Apply attack bonus from move/teleport then reset it.
+                attacker.IsEvading = 0;
             }
 
             if (roll <= difficulty)
@@ -3279,10 +3379,7 @@ namespace RDVFSharp.Entities
             //if (attacker.IsDisoriented) difficulty += 2; //Up the difficulty if you are dizzy.
             if (attacker.IsRestrained) difficulty += 9; //Up the difficulty considerably if you are restrained.
 
-            if (target.IsEvading > 0)
-            {//Evasion bonus from move/teleport. Lasts 1 turn. We didn't make an attack and now it resets to 0.
-                target.IsEvading = 0;
-            }
+         
             if (attacker.IsAggressive > 0)
             {//Apply bonus to our action from move/teleport then reset it.
                 difficulty -= attacker.IsAggressive;
@@ -3291,6 +3388,11 @@ namespace RDVFSharp.Entities
             if (attacker.IsGuarding > 0)
             {//Apply attack bonus from move/teleport then reset it.
                 attacker.IsGuarding = 0;
+            }
+
+            if (attacker.IsEvading > 0)
+            {//Apply attack bonus from move/teleport then reset it.
+                attacker.IsEvading = 0;
             }
 
             if (roll <= difficulty)
@@ -3339,9 +3441,9 @@ namespace RDVFSharp.Entities
             var attacker = this;
             var target = TeamBattlefield.GetTarget();
 
-            if (target.IsEvading > 0)
-            {//Evasion bonus from move/teleport. Lasts 1 turn. We didn't make an attack and now it resets to 0.
-                target.IsEvading = 0;
+            if (attacker.IsEvading > 0)
+            {//Apply attack bonus from move/teleport then reset it.
+                attacker.IsEvading = 0;
             }
             if (attacker.IsAggressive > 0)
             {//Only applies to 1 action, so we reset it now.
@@ -3391,11 +3493,7 @@ namespace RDVFSharp.Entities
             if (attacker.IsRestrained) difficulty -= attacker.IsEscaping; //Then reduce difficulty based on how much effort we've put into escaping so far.
             if (target.IsRestrained) difficulty -= 4; //Lower the difficulty considerably if the target is restrained.
 
-            if (target.IsEvading > 0)
-            {//Evasion bonus from move/teleport. Only applies to one attack, then is reset to 0.
-             //Not affected by opponent's evasion bonus.
-                target.IsEvading = 0;
-            }
+            
             if (attacker.IsAggressive > 0)
             {//Apply attack bonus from move/teleport then reset it.
                 difficulty -= attacker.IsAggressive;
@@ -3404,6 +3502,11 @@ namespace RDVFSharp.Entities
             if (attacker.IsGuarding > 0)
             {//Apply attack bonus from move/teleport then reset it.
                 attacker.IsGuarding = 0;
+            }
+
+            if (attacker.IsEvading > 0)
+            {//Apply attack bonus from move/teleport then reset it.
+                attacker.IsEvading = 0;
             }
 
             if (attacker.Stamina < requiredStam)
@@ -3498,10 +3601,9 @@ namespace RDVFSharp.Entities
             if (attacker.IsRestrained) difficulty -= attacker.IsEscaping; //Then reduce difficulty based on how much effort we've put into escaping so far.
             if (target.IsRestrained) difficulty -= 4; //Lower the difficulty considerably if the target is restrained.
 
-            if (target.IsEvading > 0)
-            {//Evasion bonus from move/teleport. Only applies to one attack, then is reset to 0.
-             //Not affected by opponent's evasion bonus.
-                target.IsEvading = 0;
+            if (attacker.IsEvading > 0)
+            {//Apply attack bonus from move/teleport then reset it.
+                attacker.IsEvading = 0;
             }
             if (attacker.IsAggressive > 0)
             {//Apply attack bonus from move/teleport then reset it.
@@ -3552,7 +3654,7 @@ namespace RDVFSharp.Entities
             var totalBonus = Utils.RollDice(new List<int>() { 5, 5 }) - 1 + attacker.Willpower;
 
             {
-                attacker.IsGuarding = (int)Math.Ceiling((double)totalBonus / 2);
+                attacker.IsEvading = (int)Math.Ceiling((double)totalBonus / 2);
                 TeamBattlefield.WindowController.Hit.Add(attacker.Name + " is guarding against all attacks for one turn!");
             }
 
@@ -3581,10 +3683,9 @@ namespace RDVFSharp.Entities
             if (attacker.IsRestrained) difficulty -= attacker.IsEscaping; //Then reduce difficulty based on how much effort we've put into escaping so far.
             if (target.IsRestrained) difficulty -= 4; //Lower the difficulty considerably if the target is restrained.
 
-            if (target.IsEvading > 0)
-            {//Evasion bonus from move/teleport. Only applies to one attack, then is reset to 0.
-             //Not affected by opponent's evasion bonus.
-                target.IsEvading = 0;
+            if (attacker.IsEvading > 0)
+            {//Apply attack bonus from move/teleport then reset it.
+                attacker.IsEvading = 0;
             }
             if (attacker.IsAggressive > 0)
             {//Apply attack bonus from move/teleport then reset it.
@@ -3689,6 +3790,11 @@ namespace RDVFSharp.Entities
             if (attacker.IsGuarding > 0)
             {//Apply attack bonus from move/teleport then reset it.
                 attacker.IsGuarding = 0;
+            }
+
+            if (attacker.IsEvading > 0)
+            {//Apply attack bonus from move/teleport then reset it.
+                attacker.IsEvading = 0;
             }
 
             var attackTable = attacker.BuildActionTable(difficulty, 0, 0, target.Mana, target.ManaCap);

@@ -218,6 +218,26 @@ namespace RDVFSharp
 
         }
 
+        public TeamFighter GetTargetOfOther()
+        {
+
+            int index_target = TeamFighters.IndexOf(GetOther());
+
+
+            if (index_target == 0)
+                return TeamFighters[3 - index_target - TeamFighters[index_target].SetTarget];
+
+            else if (index_target == 1)
+                return TeamFighters[3 - index_target + TeamFighters[index_target].SetTarget];
+
+            else if (index_target == 2)
+                return TeamFighters[3 - index_target - TeamFighters[index_target].SetTarget];
+
+            else
+                return TeamFighters[3 - index_target + TeamFighters[index_target].SetTarget];
+
+        }
+
 
         public TeamFighter GetActor()
         {
