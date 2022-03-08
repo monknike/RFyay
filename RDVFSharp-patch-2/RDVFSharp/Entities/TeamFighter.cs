@@ -2679,7 +2679,7 @@ namespace RDVFSharp.Entities
 
                 damage = Math.Max(damage, 1);
                 target.HitHp(damage);
-                othertarget.HitHp(damage / 2);
+                othertarget.HitHp((damage / 2) - othertarget.IsEvading);
                 attacker.IsGrabbable = 0;
                 target.IsGrabbable = 0;
                 othertarget.IsGrabbable = 0;
@@ -2777,7 +2777,7 @@ namespace RDVFSharp.Entities
 
                 damage = Math.Max(damage, 1);
                 othertarget.HitHp(damage);
-                target.HitHp(damage / 2);
+                target.HitHp((damage / 2) - target.IsEvading);
                 attacker.IsGrabbable = 0;
                 target.IsGrabbable = 0;
                 othertarget.IsGrabbable = 0;
@@ -2886,7 +2886,7 @@ namespace RDVFSharp.Entities
 
             damage = Math.Max(damage, 1);
             target.HitHp(damage * 3 / 4);
-            othertarget.HitHp(damage * 3 / 4);
+            othertarget.HitHp((damage * 3 / 4) - othertarget.IsEvading);
             attacker.IsGrabbable = 0;
             target.IsGrabbable = 0;
             othertarget.IsGrabbable = 0;
