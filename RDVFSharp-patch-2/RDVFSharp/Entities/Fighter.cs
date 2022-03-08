@@ -60,6 +60,10 @@ namespace RDVFSharp.Entities
         public int HP { get; set; }
         private int MaxHP { get; set; }
         public int HPDOT { get; set; }
+        public int ManaDOT { get; set; }
+        public int StaminaDOT { get; set; }
+        public int ManaDamage { get; set; }
+        public int StaminaDamage { get; set; }
         public int Mana { get; set; }
         public int ManaCap { get; set; }
         public int MaxMana { get; set; }
@@ -249,8 +253,16 @@ namespace RDVFSharp.Entities
             {
                 AddHp (-HPDOT);
             }
-                    
 
+            if (StaminaDamage > 0)
+            {
+                AddStamina(-StaminaDOT);
+            }
+
+            if (ManaDamage > 0)
+            {
+                AddMana(-ManaDOT);
+            }
 
             if (IsUnconscious == false)
             {
@@ -357,10 +369,16 @@ namespace RDVFSharp.Entities
                 Battlefield.WindowController.Hint.Add(Name + " has a temporary +" + IsAggressive + " bonus to accuracy and attack damage.");
             }
 
-            if (HPBurn > 1)
+            if (StaminaDamage > 1)
 
             {
-                Battlefield.WindowController.Hint.Add(Name + " is taking " + HPDOT + " damage for " + (HPBurn-1) + " turn(s).");
+                Battlefield.WindowController.Hint.Add(Name + " is taking " + HPDOT + " damage to both Stamina and HP for " + (HPBurn-1) + " turn(s).");
+            }
+
+            if (ManaDamage > 1)
+
+            {
+                Battlefield.WindowController.Hint.Add(Name + " is taking " + HPDOT + " damage to both Mana and HP for " + (HPBurn - 1) + " turn(s).");
             }
 
             if (IsExposed > 0)  
@@ -1453,7 +1471,7 @@ namespace RDVFSharp.Entities
         {
             var attacker = this;
             var target = Battlefield.GetTarget();
-            var requiredMana = 10;
+            var requiredMana = 15;
             var difficulty = 8; //Base difficulty, rolls greater than this amount will hit.
 
             //If opponent fumbled on their previous action they should become stunned.
@@ -1513,6 +1531,8 @@ namespace RDVFSharp.Entities
             {
                 target.HPDOT = (int)Math.Ceiling((double)totalBonus / 2);
                 target.HPBurn = 4;
+                target.ManaDOT = (int)Math.Ceiling((double)totalBonus / 2);
+                target.ManaDamage = 4;
                 Battlefield.WindowController.Hit.Add(attacker.Name + " landed a strike against " + target.Name + " that will do damage over time for 3 turns!");
             }
 
@@ -1529,7 +1549,7 @@ namespace RDVFSharp.Entities
         {
             var attacker = this;
             var target = Battlefield.GetTarget();
-            var requiredStamina = 10;
+            var requiredStamina = 15;
             var difficulty = 8; //Base difficulty, rolls greater than this amount will hit.
 
             //If opponent fumbled on their previous action they should become stunned.
@@ -1589,6 +1609,8 @@ namespace RDVFSharp.Entities
             {
                 target.HPDOT = (int)Math.Ceiling((double)totalBonus / 2);
                 target.HPBurn = 4;
+                target.StaminaDOT = (int)Math.Ceiling((double)totalBonus / 2);
+                target.StaminaDamage = 4;
                 Battlefield.WindowController.Hit.Add(attacker.Name + " landed a strike against " + target.Name + " that will do damage over time for 3 turns!");
             }
 
