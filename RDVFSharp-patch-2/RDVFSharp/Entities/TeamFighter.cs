@@ -2899,7 +2899,7 @@ namespace RDVFSharp.Entities
             var target = TeamBattlefield.GetTarget();
             var partner = TeamBattlefield.GetPartner();
             var othertarget = TeamBattlefield.GetOther();
-            var requiredMana = 15;
+            var requiredMana = 10;
             var difficulty = 8; //Base difficulty, rolls greater than this amount will hit.
 
 
@@ -2983,6 +2983,7 @@ namespace RDVFSharp.Entities
                 target.HPBurn = (4);
                 target.ManaDOT = (int)Math.Ceiling((double)totalBonus / 2);
                 target.ManaDamage = 4;
+                target.StaminaDamage = 0;
                 TeamBattlefield.WindowController.Hit.Add(attacker.Name + " landed a strike against " + target.Name + " that will do damage over time for 3 turns!");
             }
 
@@ -3070,6 +3071,7 @@ namespace RDVFSharp.Entities
                     othertarget.HPBurn = (4);
                     othertarget.ManaDOT = (int)Math.Ceiling((double)totalBonus / 2);
                     othertarget.ManaDamage = 4;
+                    othertarget.StaminaDamage = 0;
                     TeamBattlefield.WindowController.Hit.Add(attacker.Name + " landed a critical strike against " + othertarget.Name + " and will do damage over time for 3 turns!");
                 }
 
@@ -3091,7 +3093,7 @@ namespace RDVFSharp.Entities
             var target = TeamBattlefield.GetTarget();
             var partner = TeamBattlefield.GetPartner();
             var othertarget = TeamBattlefield.GetOther();
-            var requiredStamina = 15;
+            var requiredStamina = 10;
             var difficulty = 8; //Base difficulty, rolls greater than this amount will hit.
 
 
@@ -3170,7 +3172,8 @@ namespace RDVFSharp.Entities
                 target.HPDOT = (int)Math.Ceiling((double)totalBonus / 2);
                 target.HPBurn = (4);
                 target.StaminaDOT = (int)Math.Ceiling((double)totalBonus / 2);
-                target.StaminaDamage = 4;
+                target.StaminaDamage = 4; 
+                target.ManaDamage = 0;
                 TeamBattlefield.WindowController.Hit.Add(attacker.Name + " landed a strike against " + target.Name + " that will do damage over time for 3 turns!");
                 }
 
@@ -3260,6 +3263,7 @@ namespace RDVFSharp.Entities
                     othertarget.HPBurn = (4);
                     othertarget.StaminaDOT = (int)Math.Ceiling((double)totalBonus / 2);
                     othertarget.StaminaDamage = 4;
+                    othertarget.ManaDamage = 0;
                     TeamBattlefield.WindowController.Hit.Add(attacker.Name + " landed a critical strike against " + othertarget.Name + " and will do damage over time for 3 turns!");
                 }
 

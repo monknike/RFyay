@@ -1471,7 +1471,7 @@ namespace RDVFSharp.Entities
         {
             var attacker = this;
             var target = Battlefield.GetTarget();
-            var requiredMana = 15;
+            var requiredMana = 10;
             var difficulty = 8; //Base difficulty, rolls greater than this amount will hit.
 
             //If opponent fumbled on their previous action they should become stunned.
@@ -1533,6 +1533,7 @@ namespace RDVFSharp.Entities
                 target.HPBurn = 4;
                 target.ManaDOT = (int)Math.Ceiling((double)totalBonus / 2);
                 target.ManaDamage = 4;
+                target.StaminaDamage = 0;
                 Battlefield.WindowController.Hit.Add(attacker.Name + " landed a strike against " + target.Name + " that will do damage over time for 3 turns!");
             }
 
@@ -1549,7 +1550,7 @@ namespace RDVFSharp.Entities
         {
             var attacker = this;
             var target = Battlefield.GetTarget();
-            var requiredStamina = 15;
+            var requiredStamina = 10;
             var difficulty = 8; //Base difficulty, rolls greater than this amount will hit.
 
             //If opponent fumbled on their previous action they should become stunned.
@@ -1611,6 +1612,7 @@ namespace RDVFSharp.Entities
                 target.HPBurn = 4;
                 target.StaminaDOT = (int)Math.Ceiling((double)totalBonus / 2);
                 target.StaminaDamage = 4;
+                target.ManaDamage = 0;
                 Battlefield.WindowController.Hit.Add(attacker.Name + " landed a strike against " + target.Name + " that will do damage over time for 3 turns!");
             }
 
