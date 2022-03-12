@@ -320,6 +320,18 @@ namespace RDVFSharp
 
             }
 
+            if (TeamFighters[currentTeamFighter].StaminaDamage > 0 && TeamFighters[currentTeamFighter].IsStunned < 2)
+            {
+                TeamFighters[currentTeamFighter].StaminaDamage -= 1;
+
+            }
+
+            if (TeamFighters[currentTeamFighter].ManaDamage > 0 && TeamFighters[currentTeamFighter].IsStunned < 2)
+            {
+                TeamFighters[currentTeamFighter].ManaDamage -= 1;
+
+            }
+
             if (TeamFighters[currentTeamFighter].IsDazed)
             {
                 TeamFighters[currentTeamFighter].IsDazed = false;

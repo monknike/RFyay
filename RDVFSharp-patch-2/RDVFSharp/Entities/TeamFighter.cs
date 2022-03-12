@@ -3673,7 +3673,6 @@ namespace RDVFSharp.Entities
                 // That way we properly get a third action.
                 if (target.IsDazed) target.Fumbled = true;
                 target.IsDazed = true;
-                partner.IsDazed = true;
                 othertarget.IsDazed = true;
                 if (target.IsDisoriented > 0) target.IsDisoriented += 2;
                 if (target.IsExposed > 0) target.IsExposed += 2;
