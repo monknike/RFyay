@@ -189,6 +189,16 @@ namespace RDVFSharp
                 Fighters[currentFighter].HPBurn -= 1;
             }
 
+            if (Fighters[currentFighter].ManaDamage > 0 && !Fighters[currentFighter].IsStunned)
+            {
+                Fighters[currentFighter].ManaDamage -= 1;
+            }
+
+            if (Fighters[currentFighter].StaminaDamage > 0 && !Fighters[currentFighter].IsStunned)
+            {
+                Fighters[currentFighter].StaminaDamage -= 1;
+            }
+
             if (Fighters[currentFighter].IsStunned)
             {
                 { Fighters[currentFighter].IsStunned = false; }
