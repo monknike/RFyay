@@ -149,6 +149,11 @@ namespace RDVFSharp
             else
             { WindowController.Hint.Add(GetActor().Name + "'s next target is " + GetTarget().Name); }
 
+            if ((GetActor().IsGrabbable == GetTarget().IsGrabbable) && (GetActor().IsGrabbable > 0) && (GetActor().IsGrabbable < 20))
+            {
+                WindowController.Hint.Add(GetActor().Name + " and " + GetTarget().Name + " are in grappling range.");
+            }
+
             WindowController.UpdateOutput(this); //Tells the window controller to format and dump all the queued up messages to the results screen.
             }
 

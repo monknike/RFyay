@@ -400,10 +400,6 @@ namespace RDVFSharp.Entities
                 TeamBattlefield.WindowController.Hint.Add(Name + " has a temporary +" + IsEvading + " bonus to evasion and damage reduction.");
             }
 
-            if ((attacker.IsGrabbable == target.IsGrabbable) && (attacker.IsGrabbable > 0) && (attacker.IsGrabbable < 20) & this == target)
-            {
-                TeamBattlefield.WindowController.Hint.Add(attacker.Name + " and " + target.Name + " are in grappling range.");
-            }
             
             if (IsAggressive > 0)
             {
