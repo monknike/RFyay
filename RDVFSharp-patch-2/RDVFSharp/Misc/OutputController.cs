@@ -1,9 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 
 namespace RDVFSharp
 {
-    public class WindowController
+    public class OutputController
     {
         public List<string> Action { get; set; } = new List<string>();
         public List<string> Hit { get; set; } = new List<string>();
@@ -18,7 +17,7 @@ namespace RDVFSharp
         public string LastMessageSent { get; set; } = "";
 
 
-        public WindowController()
+        public OutputController()
         {
             Action = new List<string>();
             Hit = new List<string>();
@@ -58,7 +57,7 @@ namespace RDVFSharp
             }
         }
 
-        public void UpdateOutput(Battlefield battlefield)
+        public void Broadcast(Battlefield battlefield)
         {
             Info.Add("This is " + battlefield.GetActor().Name + "'s turn.");
             var lines = new List<string>(); ;
@@ -89,40 +88,6 @@ namespace RDVFSharp
             Hint.Clear();
             Info.Clear();
             Error.Clear();
-        }
-
-        public void UpdateOutput(TeamBattlefield TeamBattlefield)
-        {
-            Info.Add("This is " + TeamBattlefield.GetActor().Name + "'s turn.");
-            var lines = new List<string>(); ;
-            lines.Add("");
-            if (Action.Count > 0) lines[0] += FormatMessage(MessageType.Action, string.Join(" ", Action));
-            if (Damage != 0) lines[0] += FormatMessage(MessageType.Damage, Damage.ToString());
-            if (lines[0] == "") lines.Clear();
-
-            if (Hit.Count > 0) lines.Add(FormatMessage(MessageType.Hit, string.Join("\n", Hit)));
-            if (Status.Count > 0) lines.Add(string.Join("\n", Status));
-            if (Hint.Count > 0) lines.Add(FormatMessage(MessageType.Hint, string.Join("\n", Hint)));
-            if (Special.Count > 0) lines.Add(FormatMessage(MessageType.Special, string.Join("\n", Special)));
-            if (Info.Count > 0) lines.Add("\n" + string.Join("\n", Info));
-
-            LastMessageSent = string.Join("\n", lines);
-
-            TeamBattlefield.Plugin.FChatClient.SendMessageInChannel(LastMessageSent, TeamBattlefield.Plugin.Channel);
-            if (Error.Count > 0)
-            {
-                TeamBattlefield.Plugin.FChatClient.SendMessageInChannel(string.Join("\n", Error), TeamBattlefield.Plugin.Channel);
-            }
-
-            //clear messages from the queue once they have been displayed
-            Action.Clear();
-            Hit.Clear();
-            Damage = 0;
-            Status.Clear();
-            Hint.Clear();
-            Info.Clear();
-            Error.Clear();
-
         }
     }
 }

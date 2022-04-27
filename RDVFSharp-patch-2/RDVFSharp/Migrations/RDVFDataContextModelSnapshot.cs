@@ -22,6 +22,10 @@ namespace RDVFSharp.Migrations
                     b.Property<long>("FightId")
                         .ValueGeneratedOnAdd();
 
+                    b.Property<string>("AdditionalLosersId");
+
+                    b.Property<string>("AdditionalWinnersId");
+
                     b.Property<DateTime>("FinishDate");
 
                     b.Property<string>("LoserId")

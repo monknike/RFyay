@@ -8,7 +8,7 @@ namespace RDVFSharp.Commands
     {
         public override string Description => "Displays your own stats.";
 
-        public override void ExecuteCommand(string character, IEnumerable<string> args, string channel)
+        public void Execute(string character, IEnumerable<string> args, string channel = "")
         {
             using (var context = Plugin.Context)
             {
@@ -23,15 +23,15 @@ namespace RDVFSharp.Commands
                 Plugin.FChatClient.SendPrivateMessage(fighter.Stats, channel);
             }
         }
-        public override void ExecutePrivateCommand(string character, IEnumerable<string> args)
-        {
-            using (var context = Plugin.Context)
-            {
-                var fighter = context.Fighters.Find(character);
-                if (fighter == null) { Plugin.FChatClient.SendPrivateMessage("Error:" + character + " isn't registered yet.", character); }
 
-                else { Plugin.FChatClient.SendPrivateMessage(fighter.Stats, character); }
-            }
+        public override void ExecuteCommand(string character, IEnumerable<string> args, string channel)
+        {
+            this.Execute(character, args, channel);
+        }
+
+        public override void ExecutePrivateCommand(string characterCalling, IEnumerable<string> args)
+        {
+            this.Execute(characterCalling, args);
         }
     }
 }

@@ -14,7 +14,7 @@ namespace RDVFSharp.Commands
     {
         public override string Description => "Registers a player in the game.";
 
-        public override void ExecuteCommand(string character, IEnumerable<string> args, string channel)
+        public void Execute(string character ,IEnumerable<string> args, string channel = "")
         {
             using (var context = Plugin.Context)
             {
@@ -46,69 +46,40 @@ namespace RDVFSharp.Commands
                     Strength = statsArray[0],
                     Dexterity = statsArray[1],
                     Resilience = statsArray[2],
-                    Spellpower = statsArray[3],
-                    Willpower = statsArray[4]
+                    Endurance = statsArray[3],
+                    Special = statsArray[4]
                 };
 
                 if (createdFighter.AreStatsValid)
                 {
                     context.Fighters.Add(createdFighter);
                     context.SaveChanges();
-                    Plugin.FChatClient.SendMessageInChannel($"Welcome among us, {character}!", channel);
+                    if(channel == "")
+                    {
+                        Plugin.FChatClient.SendPrivateMessage($"Welcome among us, {character}!", character);
+                    }
+                    else
+                    {
+                        Plugin.FChatClient.SendMessageInChannel($"Welcome among us, {character}!", channel);
+                    }
+                    
                 }
                 else
                 {
                     throw new Exception(string.Join(", ", createdFighter.GetStatsErrors()));
                 }
             }
-
+            
         }
-        public override void ExecutePrivateCommand(string character, IEnumerable<string> args)
+
+        public override void ExecuteCommand(string character, IEnumerable<string> args, string channel)
         {
-            using (var context = Plugin.Context)
-            {
-                var fighter = context.Fighters.Find(character);
-                if (fighter != null)
-                {
-                    { Plugin.FChatClient.SendPrivateMessage("Error: Fighter already exists! If you want to change stats, use !restat instead", character); };
-                }
+            this.Execute(character, args, channel);
+        }
 
-
-                int[] statsArray;
-
-                
-                {
-                    statsArray = Array.ConvertAll(args.ToArray(), int.Parse);
-
-                    if (statsArray.Length != 5)
-                    {
-                        { Plugin.FChatClient.SendPrivateMessage("All stats must have a value attached to them. !register STR DEX RES SPW WIL, e.g. !register 6 8 8 0 2", character); }; ;
-                    }
-                }
-                
-
-                var createdFighter = new BaseFighter()
-                {
-                    Name = character,
-                    Strength = statsArray[0],
-                    Dexterity = statsArray[1],
-                    Resilience = statsArray[2],
-                    Spellpower = statsArray[3],
-                    Willpower = statsArray[4]
-                };
-
-                if (createdFighter.AreStatsValid)
-                {
-                    context.Fighters.Add(createdFighter);
-                    context.SaveChanges();
-                    Plugin.FChatClient.SendPrivateMessage($"Welcome among us, {character}!", character);
-                }
-                else
-                {
-                    { Plugin.FChatClient.SendPrivateMessage("Error: Fighter stats incorrectly formatted. Remember, you have 24 stat points, each stat between 0 and 10, and written as !register STR DEX RES SPW WIL. E.g. !register 6 8 8 0 2", character); };
-                }
-            }
-
+        public override void ExecutePrivateCommand(string characterCalling, IEnumerable<string> args)
+        {
+            this.Execute(characterCalling, args);
         }
     }
 }

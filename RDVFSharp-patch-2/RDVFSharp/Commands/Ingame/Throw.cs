@@ -6,38 +6,13 @@ namespace RDVFSharp.Commands
     {
         public override void ExecuteCommand(string character, IEnumerable<string> args, string channel)
         {
-            if (Plugin.CurrentTeamBattlefield.IsActive)
-
+            if (Plugin.CurrentBattlefield.GetActor().IsRestraining && Plugin.CurrentBattlefield.GetTarget().IsRestrained)
             {
-                if (Plugin.CurrentTeamBattlefield.GetActor().IsRestrained && Plugin.CurrentTeamBattlefield.GetTarget().IsRestraining || Plugin.CurrentTeamBattlefield.GetTarget().IsRestrained && Plugin.CurrentTeamBattlefield.GetActor().IsRestraining)
-                {
-                    base.ExecuteCommand(character, args, channel);
-                }
-
-                else
-                {
-                    Plugin.FChatClient.SendMessageInChannel("You can only use Throw if you are grappling.", Plugin.Channel);
-                }
+                base.ExecuteCommand(character, args, channel);
             }
-
-
-            else if (Plugin.CurrentBattlefield.IsActive)
-
-            {
-                if (Plugin.CurrentBattlefield.GetActor().IsRestrained || Plugin.CurrentBattlefield.GetTarget().IsRestrained)
-                {
-                    base.ExecuteCommand(character, args, channel);
-                }
-
-                else
-                {
-                    Plugin.FChatClient.SendMessageInChannel("You can only use Throw if you are grappling.", Plugin.Channel);
-                }
-            }
-
             else
             {
-                Plugin.FChatClient.SendMessageInChannel("There is no fight going on right now.", Plugin.Channel);
+                Plugin.FChatClient.SendMessageInChannel("You can only use Throw if you are grappling.", Plugin.Channel);
             }
         }
     }

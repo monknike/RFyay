@@ -13,14 +13,6 @@ namespace RDVFSharp
     {
 
         public Battlefield CurrentBattlefield { get; set; }
-        public TeamBattlefield CurrentTeamBattlefield { get; set; }
-        public Fighter FirstFighter { get; set; }
-        public Fighter SecondFighter { get; set; }
-        public TeamFighter FirstTeamFighter { get; set; }
-        public TeamFighter SecondTeamFighter { get; set; }
-        public TeamFighter ThirdTeamFighter { get; set; }
-        public TeamFighter FourthTeamFighter { get; set; }
-
 
         public RDVFDataContext Context
         {
@@ -31,17 +23,15 @@ namespace RDVFSharp
         }
         public ServiceProvider ServiceProvider { get; set; }
 
-        public RendezvousFighting(ServiceProvider serviceProvider, List<string> channels, bool debug = false, Battlefield currentBattlefield = null, TeamBattlefield currentTeamBattlefield = null) : base(channels, debug)
+        public RendezvousFighting(ServiceProvider serviceProvider, List<string> channels, bool debug = false, Battlefield currentBattlefield = null) : base(channels, debug)
         {
             ServiceProvider = serviceProvider;
             ResetFight(currentBattlefield);
-            ResetTeamFight(currentTeamBattlefield);
-            CurrentTeamBattlefield = new TeamBattlefield(this);
         }
 
         public void ResetFight(Battlefield currentBattlefield = null)
         {
-            if (currentBattlefield != null)
+            if(currentBattlefield != null)
             {
                 CurrentBattlefield = currentBattlefield;
             }
@@ -49,26 +39,6 @@ namespace RDVFSharp
             {
                 CurrentBattlefield = new Battlefield(this);
             }
-
-            FirstFighter = null;
-            SecondFighter = null;
-        }
-
-        public void ResetTeamFight(TeamBattlefield currentTeamBattlefield = null)
-        {
-            if (currentTeamBattlefield != null)
-            {
-                CurrentTeamBattlefield = currentTeamBattlefield;
-            }
-            else
-            {
-                CurrentTeamBattlefield = new TeamBattlefield(this);
-            }
-
-            FirstTeamFighter = null;
-            SecondTeamFighter = null;
-            ThirdTeamFighter = null;
-            FourthTeamFighter = null;
         }
     }
 }
