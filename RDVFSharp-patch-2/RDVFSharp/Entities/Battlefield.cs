@@ -123,7 +123,7 @@ namespace RDVFSharp
                 luck = (int)Math.Round((double)actor.RollTotal / actor.RollsMade);
             }
 
-            var fightAction = FightActionFactory.Create(action);
+            var fightAction = FightActionFactory.Create(action, Fighters.Count > 2);
             fightAction.Execute(roll, this, actor, this.GetFighterTarget(actor.Name));
 
             OutputController.Info.Add("Raw Dice Roll: " + roll);
@@ -163,8 +163,6 @@ namespace RDVFSharp
             if(RemainingTeams == 1)
             {
                 OutputController.Hit.Add("The fight is over! CLAIM YOUR SPOILS and VICTORY and FINISH YOUR OPPONENT!");
-                OutputController.Special.Add("FATALITY SUGGESTION: " + FatalitySelect.SelectRandom());
-                OutputController.Special.Add("It is just a suggestion, you may not follow it if you don't want to.");
                 EndFight(GetActor(), GetTarget());
             }
         }

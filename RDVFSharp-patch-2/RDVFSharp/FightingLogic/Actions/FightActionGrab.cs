@@ -97,6 +97,9 @@ namespace RDVFSharp.FightingLogic.Actions
             battlefield.OutputController.Hint.Add(target.Name + " is being grappled! " + attacker.Name + " has reduced difficulty to use melee attacks and can also use the special attacks Throw and Submission.");
             battlefield.OutputController.Hint.Add(target.Name + " can try to escape the grapple by using Move, Throw, or Teleport.");
             target.IsGrappledBy.Add(attacker.Name);
+            target.IsRestrained = true;
+            attacker.IsRestraining = true;
+
 
             //If we managed to grab without being in grab range, we are certainly in grabe range afterwards.
             if (!battlefield.InGrabRange) battlefield.InGrabRange = true;
